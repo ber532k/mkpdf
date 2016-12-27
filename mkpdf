@@ -85,6 +85,7 @@ function toc_assemble {
 function convert_to_latex {
 # Usage: convert [full|part] [input] [output]
 #    [full|part] specifies if a template is to be used or not
+# Note: this function calls furbishtex if it exists
 
 	# Exit on error
 	if ! [[ $# = 3 ]]; then
@@ -118,6 +119,10 @@ function convert_to_latex {
 		elif [[ $1 = part ]]; then
 			pandoc -f markdown -t latex --biblatex "$2" -o "$3"
 		fi
+	fi
+
+	if which furbishtex &>/dev/null; then
+		furbishtex $3
 	fi
 
 }

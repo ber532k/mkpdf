@@ -1,0 +1,40 @@
+#!/bin/bash
+
+if [[ $1 = -h ]] || [[ $1 = --help ]] || [[ $# = 0 ]]; then
+	echo "Usage: furbishtex <file1> [file2] [file3] ..."
+	echo
+	echo "Configuration:"
+	echo "    Furbishtex will search both /usr/share/furbishtex"
+	echo "  and \$HOME/.furbishtex and pass all the files from"
+	echo "  these directories on to sed to apply to the files"
+	echo "  given from the command line."
+	echo "    Furbishtex is thus configured in sed's script"
+	echo "  language."
+	echo
+	exit 0
+fi
+
+files="$@"
+
+if ls /usr/share/furbishtex/* &>/dev/null; then
+	conf=($(ls /usr/share/furbishtex/*))
+fi
+if ls $HOME/.furbishtex/* &>/dev/null; then
+	conf=($conf $(ls $HOME/.furbishtex/*))
+fi
+
+if [[ $conf = "" ]]; then
+	echo "ERROR: No configuration files found"
+	echo "   Please verify that either /usr/share/furbishtex or"
+	echo "   $HOME/.furbishtex contain at least one file."
+	exit 1
+fi
+
+for idx in "${!conf[@]}"; do
+
+	scripts="$scripts -f ${conf[$idx]}"
+
+done
+
+sed -i $scripts $files
+
