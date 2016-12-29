@@ -158,9 +158,8 @@ function convert_to_latex { #{{{
 		echo ERROR: convert_to_latex called with neither full nor part mode
 		exit 1
 	elif ! [[ $template ]]; then
-		echo ERROR: convert_to_latex called but no template var set >> mkpdf.log
-		echo ERROR: convert_to_latex called but no template var set
-		exit 1
+		template=default.latex
+		fix_template_path
 	fi
 
 	# check beamer/latex
