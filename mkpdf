@@ -8,6 +8,8 @@ function print_help { #{{{
 	echo
 	echo "Options:"
 	echo "  -c  --clean      Clean up all tmpdirs"
+	echo "  -d  --debug      Print latexmk output"
+	echo "                   Useful, if mkpdf hangs"
 	echo "  -h  --help       Print this help"
 	echo "      --help-toc   Print info on how to"
 	echo "                   use toc-mode"
@@ -224,6 +226,25 @@ elif [[ $1 = -c ]] || [[ $1 = --clean ]]; then
 	exit 0
 elif [[ $1 = --help-toc ]]; then
 	print_help_toc
+	exit 0
+elif [[ $1 = -d ]] || [[ $1 = --debug ]]; then
+	ls /tmp/mkpdf | while read var; do
+	if [[ "$(cat /tmp/mkpdf/$var/latexmk.log | tail -1 | grep 'Latexmk: All targets' | grep 'are up-to-date')" ]]; then
+		echo "/tmp/mkpdf/$var/latexmk.log"
+		echo "    is clean (i. e. latexmk finished ok)"
+		echo
+	else
+		cat /tmp/mkpdf/$var/latexmk.log
+		echo
+		echo -------------------------------
+		echo Above is the content of /tmp/mkpdf/$var/latexmk.log
+		echo -------------------------------
+		read -p "Hit Enter to search for further errors" </dev/tty
+		echo
+		echo
+		echo
+	fi
+	done
 	exit 0
 
 # REAL INPUT:
