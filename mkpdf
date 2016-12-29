@@ -64,7 +64,8 @@ function toc_assemble {
 				passthrough=1
 			elif [[ $(echo $line | cut -c 1-9) = 'template=' ]]; then
 				if ! [[ $template ]]; then
-					$line
+					template="$(echo $line | cut -d '"' -f 2)"
+					ln -rsf $template $tmpdir/mkpdf.template.latex
 					if ! [[ $(echo $template | cut -c 1) = '/' ]]; then
 						template=$path/$(echo $template)
 					fi
