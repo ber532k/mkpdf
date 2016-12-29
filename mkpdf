@@ -1,6 +1,6 @@
 #!/bin/bash
 
-function print_help {
+function print_help { #{{{
 	echo
 	echo "Usage: mkpdf <filename> [template]"
 	echo "   Or: mkpdf <directory> [template]"
@@ -13,7 +13,8 @@ function print_help {
 	echo "                   use toc-mode"
 	echo
 }
-function print_help_toc {
+#}}}
+function print_help_toc { #{{{
 	echo
 	echo "mkpdf toc-mode:"
 	echo
@@ -42,7 +43,8 @@ function print_help_toc {
 	echo "      they are specified"
 	echo
 }
-function fix_template_path {
+#}}}
+function fix_template_path { #{{{
 # Usage: have template= set; the function will reset it to an absolute
 # path if it is not yet one
 #
@@ -86,7 +88,8 @@ function fix_template_path {
 		fi
 	fi
 }
-function toc_assemble {
+#}}}
+function toc_assemble { #{{{
 
 # Description: function will generate:
 #
@@ -138,7 +141,8 @@ function toc_assemble {
 	fi
 	done < toc.conf
 }
-function convert_to_latex {
+#}}}
+function convert_to_latex { #{{{
 
 # Usage: convert [full|part] [input] [output]
 #    [full|part] specifies if a template is to be used or not
@@ -160,6 +164,7 @@ function convert_to_latex {
 	fi
 
 	# check beamer/latex
+	fix_template_path
 	if cat $template | grep '\documentclass{beamer}' &>/dev/null; then
 		to=beamer
 	else
@@ -196,7 +201,8 @@ function convert_to_latex {
 		furbishtex $3
 	fi
 }
-function get_input {
+#}}}
+function get_input { #{{{
 # checking input
 # has to set one of two modes: toc to read toc.conf from
 # directory or file to use one file as input
@@ -247,7 +253,8 @@ else
 	exit 1
 fi
 }
-function check_file_integrity {
+#}}}
+function check_file_integrity { #{{{
 # Check if all files exist
 # Else print error message and exit
 
@@ -266,7 +273,8 @@ else
 	exit 1
 fi
 }
-function process_input {
+#}}}
+function process_input { #{{{
 
 # Extends the input
 # sets the following vars
@@ -303,7 +311,7 @@ function process_input {
 		filename="mkpdf.$title.markdown"
 	fi
 }
-
+#}}}
 
 
 
@@ -311,7 +319,7 @@ function process_input {
 #	Main Part
 ####################################
 
-get_input
+get_input $@
 check_file_integrity
 process_input
 
