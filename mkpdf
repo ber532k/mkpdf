@@ -1,233 +1,264 @@
 #!/bin/bash
 
-function print_help { #{{{
-	echo
-	echo "Usage: mkpdf <filename> [template]"
-	echo "   Or: mkpdf <directory> [template]"
-	echo "   Or: mkpdf <option>"
-	echo
-	echo "Options:"
-	echo "  -c  --clean      Clean up all tmpdirs"
-	echo "  -d  --debug      Print latexmk output"
-	echo "                   Useful, if mkpdf hangs"
-	echo "  -h  --help       Print this help"
-	echo "      --help-toc   Print info on how to"
-	echo "                   use toc-mode"
-	echo
-}
-#}}}
-function print_help_toc { #{{{
-	echo
-	echo "mkpdf toc-mode:"
-	echo
-	echo "  You may include a 'toc.conf' text"
-	echo "  file in a directory and run mkpdf"
-	echo "  in that directory or with the"
-	echo "  directory as an argument"
-	echo
-	echo "  This file may include:"
-	echo "    - YAML-style headers to be passed"
-	echo "      on to pandoc"
-	echo "    - A template file to use specified"
-	echo "      as template=\"template name\""
-	echo "      In case more than one template is"
-	echo "      specified, the first one will be"
-	echo "      used"
-	echo "      The template can be overridden"
-	echo "      from the commandline"
-	echo "      A template may also be included in"
-	echo "      the source file inside a comment"
-	echo "      '<!--template=\"template name\"-->"
-	echo "    - Single-line comments starting"
-	echo "      either with '#' or '%'"
-	echo "    - A simple list of files in mark-"
-	echo "      down to be included in the order"
-	echo "      they are specified"
-	echo
-}
-#}}}
-function fix_template_path { #{{{
-# Usage: have template= set; the function will reset it to an absolute
-# path if it is not yet one
-#
-# Explanation: set a template variable. If this is not an absolute path,
-# the current directory and then the pandoc defaults will be searched
-# a template containing that name
-	if [[ $template ]] && ! [[ $(echo $template | cut -c 1) = / ]]; then
+echo Bauzaun !!!
+exit 0
 
-		# fix spaces before template
-		template=$(echo $template)
-		
-		# search for template
-		# In current directory:
-		if [[ -f $PWD/$template ]]; then
-			template=$PWD/$template
-		elif [[ -f $PWD/$template.latex ]]; then
-			template=$PWD/$template.latex
-		elif [[ -f $PWD/$template.beamer ]]; then
-			template=$PWD/$template.beamer
-		elif [[ -f $PWD/latex.$template ]]; then
-			template=$PWD/latex.$template
-		elif [[ -f $PWD/beamer.$template ]]; then
-			template=$PWD/beamer.$template
+####################################
+##	Quick Changes
+####################################
 
-		# In pandoc defaults:
-		elif [[ -f /usr/share/pandoc/data/templates/$template ]]; then
-			template=/usr/share/pandoc/data/templates/$template
-		elif [[ -f /usr/share/pandoc/data/templates/default.$template ]]; then
-			template=/usr/share/pandoc/data/templates/default.$template
-		elif [[ -f /usr/share/pandoc/data/templates/$template.latex ]]; then
-			template=/usr/share/pandoc/data/templates/$template.latex
-		elif [[ -f /usr/share/pandoc/data/templates/$template.beamer ]]; then
-			template=/usr/share/pandoc/data/templates/$template.beamer
+default_template=/usr/share/pandoc/data/templates/default.latex
+template_dirs="$HOME/.mkpdf /usr/share/pandoc/data/templates"
+
+
+
+
+
+####################################
+##	Functions
+####################################
+
+print_help() {
+   cat <<EOF
+
+Usage: ${0##*/} <filename> [template]
+   Or: ${0##*/} <directory> [template]
+   Or: ${0##*/} <option>
+
+Options:
+  -c  --clean      Clean up all tmpdirs
+  -d  --debug      Print latexmk output
+                   Useful, if mkpdf hangs
+  -h  --help       Print this help
+      --help-toc   Print info on how to
+                   use toc-mode
+
+EOF
+}
+
+
+print_help_toc() {
+   cat <<EOF
+
+mkpdf toc-mode:
+
+  You may include a 'toc.conf' text
+  file in a directory and run mkpdf
+  in that directory or with the
+  directory as an argument
+
+  This file may include:
+    - YAML-style headers to be passed
+      on to pandoc
+    - A template file to use specified
+      as template="template name"
+      In case more than one template is
+      specified, the first one will be
+      used
+      The template can be overridden
+      from the commandline
+      A template may also be included in
+      the source file inside a comment
+      <!--template="template name"-->
+    - Single-line comments starting
+      either with '#' or '%'
+    - A simple list of files in mark-
+      down to be included in the order
+      they are specified
+
+EOF
+}
+
+
+fix_template_path() {
+# Usage: have template= set; the function will search some
+# directories if it is not simply found by the path given
+
+if ! [[ -f $template ]]; then
+	dirs=$template_dirs
+	for d in $dirs; do
+		if [[ -f $d/$template ]]; then
+			template=$d/$template
+			break
 		fi
+	done
+fi
 
-		# Exit on error
-		if [[ $template ]] && ! [[ -f $template ]]; then
-			echo ERROR: Template file $template not found. >> mkpdf.log
-			echo ERROR: Template file $template  not found.
+# Check if file was found
+if ! [[ -f $template ]]; then
+	echo "ERROR: Template $template not found!"
+	echo "       Using default template instead"
+	template=$default_template
+fi
+}
+
+
+assemble_toc() {
+# Description: function will get:
+#	- files=...		list of files for pandoc to take as input
+#	$tmpdir/head.md		containing metadata from toc.conf
+
+head=$tmpdir/head.md
+echo > $head
+files=$head
+while read line; do
+	if [[ $passthrough = 1 ]]; then
+		echo $line >> $head
+		if [[ $line = --- ]] || [[ $line = ... ]]; then
+			echo >> $head
+ 			unset passthrough
+		fi
+	elif [[ $ignore = 1 ]]; then
+		if [[ $line = '-->' ]]; then
+			unset ignore
+		fi
+	else
+		if [[ $line = --- ]]; then
+			echo $line >> $head
+			passthrough=1
+		elif [[ $line = '<!--' ]]; then
+			ignore=1
+		elif ! [[ $line = "" ]]; then
+			files="$files $tocdir/$(echo $line)"
+		fi
+	fi
+done < toc.conf | sed s/'<!--.*-->'//g | sed s/'#.*'//g | sed s/'%.*'//g
+}
+
+
+
+
+######################################
+##	Main Part
+######################################
+
+# set variables [""|1] for all possible options
+# set template=... if supplied from the commandline
+# for help print help and exit
+
+if [[ $# = 0 ]]; then
+	files=$PWD
+else
+while [[ $1 ]]; do
+	if [[ $1 = -h ]] || [[ $1 = --help ]]; then
+		print_help
+		exit 0
+	elif [[ $1 = --help-toc ]]; then
+		print_help_toc
+		exit 0
+	elif [[ $1 = -t ]] || [[ $1 = --template ]]; then
+		shift
+		template=$1
+	elif [[ $1 = --template=* ]]; then
+		template="$(echo $1 | sed s/--template=//g)"
+	elif [[ $1 = -c ]]; then
+		cleanone=1
+	elif [[ $1 = -C ]] || [[ $1 = --clean ]]; then
+		cleanall=1
+	elif [[ $1 = -d ]] || [[ $1 = --debug ]]; then
+		debug=1
+	else
+		files="$files $1"
+	fi
+	shift
+done
+fi
+
+
+
+# retrieve additional information once input vars are set
+# i. e. mode, title, tmpdir and either files or tocdir
+
+if [[ -d $files ]]; then
+	mode=toc
+	tocdir="$files"
+	unset files
+	if [[ $(echo $tocdir | rev | cut -c1) = / ]]; then
+		title="$(echo $tocdir | rev | cut -d / -f 2 | rev)"
+	else
+		title="$(echo $tocdir | rev | cut -d / -f 1 | rev)"
+	fi
+else
+	mode=file
+	title="$(echo $files | cut -d ' ' -f 1 | rev | cut -d / -f 1 | rev | cut -d . -f 1)"
+fi
+tmpdir="/tmp/mkpdf/$title"
+
+
+
+# Check if all specified input files exist
+# Else print error message and exit
+# Does not check files specified through toc.conf
+
+if [[ $mode = file ]]; then
+	for f in $files; do
+	if ! [[ -f $f ]]; then
+		echo FATAL: file $f not found.
+		exit 1
+	fi
+	done
+elif [[ $mode = toc ]]; then
+	if ! [[ -f $tocdir/toc.conf ]]; then
+		if [[ $tocdir = "" ]]; then
+			echo FATAL: toc.conf not found
+			exit 1
+		else
+			echo FATAL: $tocdir/toc.conf not found
 			exit 1
 		fi
 	fi
-}
-#}}}
-function toc_assemble { #{{{
-
-# Description: function will generate:
-#
-#	- template=...			(if not yet set)
-#	- $filename	(master file)	(containing header from toc.conf and various \input{something}
-#	- mkpdf.something.tex		(for each input)
+fi
 
 
-	# (re-)set master file
-	echo "<!--mkpdf autogenerated toc_assemble output file-->" > $filename
-	echo "<!--$(date)-->" >> $filename
-	echo >> $filename
+! [[ $template ]] && template=$default_template
+fix_template_path
 
-	# Check for template
-	if ! [[ $template ]]; then
-		if grep "template=" toc.conf &>/dev/null; then
-			template="$(grep 'template=' toc.conf | head -1 | cut -d '"' -f 2)"
-			fix_template_path
-		else
-			template=default.latex
-			fix_template_path
-		fi
-	fi
+# autocleanup if the template changed
+templatesum="$(md5sum $template | cut -d ' ' -f 1)"
+[[ $(cat $tmpdir/template.md5sum) = $templatesum ]] && cleanone=1
 
-	# read toc.conf line by line
-	# Pass header on to master file
-	# include parts as \input{something}
-	# chnvert parts to something.tex
-	while read line; do
-	if ! [[ $(echo $line | cut -c 1) = '#' ]] && ! [[ $(echo $line | cut -c 1) = '%' ]] && ! [[ $line = "" ]]; then
-		if [[ $passthrough = 1 ]]; then
-			echo $line >> $filename
-			if [[ $line = --- ]] || [[ $line = ... ]]; then
-				echo >> $filename
-	 			unset passthrough
-			fi
-		else
-			if [[ $line = --- ]]; then
-				echo >> $filename
-				echo $line >> $filename
-				passthrough=1
-			elif ! [[ $(echo $line | grep 'template=') ]]; then
-				echo >> $filename
-				echo "\\input{mkpdf.$line.tex}" >> $filename
-				echo >> $filename
-				convert_to_latex part "$line" "mkpdf.$line.tex"
-			fi
-		fi
-	fi
-	done < toc.conf
-}
-#}}}
-function convert_to_latex { #{{{
 
-# Usage: convert [full|part] [input] [output]
-#    [full|part] specifies if a template is to be used or not
-# Note: this function calls furbishtex if it exists
+# clean up, as needed
+[[ $cleanall = 1 ]] && rm -rf /tmp/mkpdf && echo Successfully removed /tmp/mkpdf
+[[ $cleanone = 1 ]] && rm -rf $tmpdir && echo Successfully removed $tmpdir
 
-	# Exit on error
-	if ! [[ $# = 3 ]]; then
-		echo ERROR: convert_to_latex called with wrong number of arguments >> mkpdf.log
-		echo ERROR: convert_to_latex called with wrong number of arguments
-		exit 1
-	elif ! [[ $1 = full ]] && ! [[ $1 = part ]]; then
-		echo ERROR: convert_to_latex called with neither full nor part mode >> mkpdf.log
-		echo ERROR: convert_to_latex called with neither full nor part mode
-		exit 1
-	elif ! [[ $template ]]; then
-		template=default.latex
-		fix_template_path
-	fi
 
-	# check beamer/latex
-	fix_template_path
-	if cat $template | grep '\documentclass{beamer}' &>/dev/null; then
-		to=beamer
-	else
-		to=latex
-	fi
+# Set up tmpdir
+! [[ -d $tmpdir ]] && mkdir -p "$tmpdir"
+echo $templatesum > $tmpdir/template.md5sum
+
+[[ $mode = toc ]] && assemble_toc
+
+
+# Get variables for pandoc
+[[ cat $template | grep '\documentclass{beamer}' ]] && to=beamer || to=latex
+
+# invoke pandoc
+pandoc -f markdown -t $to --file-scope --wrap=preserve --biblatex --template=$template -o $tmpdir/master.tex $files
+
+# furbish output if script exists
+[[ $(which furbishtex) ]] && furbishtex $tmpdir/master.tex
+
+latexmk -pdf -output=$tmpdir $tmpdir/master.tex
+
+# Copy pdf to output dir
+echo "    Exporting output file"
+cp -f $tmpdir/master.pdf $title.pdf
 
 
 
-		# create fake csquotes header for parts
-		# set the frame var for pandoc to use
-		if [[ $1 = full ]]; then
-			frame="--template=$template"
-		elif [[ $1 = part ]]; then
-		       if grep \usepackage{csquotes} $template &>/dev/null; then
-				echo '\usepackage{csquotes}' > mkpdf.fakeframe.latex
-				echo '$body$' >> mkpdf.fakeframe.latex
-				frame="--template=mkpdf.fakeframe.latex"
-			else
-				frame=""
-			fi
-		fi
 
-	# invoke pandoc
-	pandoc --wrap=preserve -f markdown -t $to $frame --biblatex $2 -o $3
-	
-		# strip fake header
-		if [[ "$frame" = "--template=mkpdf.fakeframe.latex" ]]; then
-			tail -n+2 $3 > $3.nofakeframe
-			mv $3.nofakeframe $3
-		fi
 
-	# furbish output
-	if which furbishtex &>/dev/null; then
-		furbishtex $3
-	fi
-}
-#}}}
-function get_input { #{{{
-# checking input
-# has to set one of two modes: toc to read toc.conf from
-# directory or file to use one file as input
-#
-# Will set the following variables:
-#
-#    name	type or poss. values	condition
-#    ------	-------------------	----------
-#    mode	[file|toc]
-#    template	optional string		processed by fix_template_path
-#    doc	path-to-file		only for mode=file
-#    path	path-to-directory	only for mode=toc
 
-# OPTIONS:
-if [[ $1 = -h ]] || [[ $1 = --help ]]; then
-	print_help
-	exit 0
-elif [[ $1 = -c ]] || [[ $1 = --clean ]]; then
-	rm -rfv /tmp/mkpdf
-	exit 0
-elif [[ $1 = --help-toc ]]; then
-	print_help_toc
-	exit 0
-elif [[ $1 = -d ]] || [[ $1 = --debug ]]; then
+
+
+
+
+
+
+exit 0
+
+#elif [[ $1 = -d ]] || [[ $1 = --debug ]]; then
 	ls /tmp/mkpdf | while read var; do
 	if [[ "$(cat /tmp/mkpdf/$var/latexmk.log | tail -1 | grep 'Latexmk: All targets' | grep 'are up-to-date')" ]]; then
 		echo "/tmp/mkpdf/$var/latexmk.log"
@@ -243,146 +274,3 @@ elif [[ $1 = -d ]] || [[ $1 = --debug ]]; then
 		echo
 		echo
 		echo
-	fi
-	done
-	exit 0
-
-# REAL INPUT:
-
-# FILE-MODE
-elif [[ -f $1 ]]; then
-	mode=file
-	doc=$1
-	template=$2
-
-# TOC-MODE
-elif [[ $# = 0 ]]; then
-	mode=toc
-	path=$(pwd)
-elif [[ -d $1 ]]; then
-	mode=toc
-	path=$1
-	template=$2
-
-# ERRORS:
-elif [[ $# -gt 2 ]]; then
-	echo ERROR: too many arguments.
-	exit 1
-else
-	echo ERROR: Input not understood.
-	exit 1
-fi
-}
-#}}}
-function check_file_integrity { #{{{
-# Check if all files exist
-# Else print error message and exit
-
-if [[ $mode = file ]]; then
-	if ! [[ -f $doc ]]; then
-		echo No such file or directory.
-		exit 1
-	fi
-elif [[ $mode = toc ]]; then
-	if ! [[ -f $path/toc.conf ]]; then
-		echo $path/toc.conf not found
-		exit 1
-	fi
-else
-	echo ERROR: Could not get any mode variable.
-	exit 1
-fi
-}
-#}}}
-function process_input { #{{{
-
-# Extends the input
-# sets the following vars
-#
-#	name		value					condition
-#	-------		---------				--------------
-#	dest		output dir eq invoked from
-#	filename	name of input file			in file mode
-#			name of to-be-generated input file	in toc mode
-#	title		title used for output files
-#	path		path for input file of toc.conf
-#	tmpdir		directory for temporary files
-#	template	if in comment in file			only in file mode
-
-	
-	dest=$(pwd)
-	if [[ $mode = file ]]; then
-		[[ $(echo $doc | cut -c 1) = / ]] || doc=$(pwd)/$doc
-		filename="$(echo $doc | rev | cut -d / -f 1 | rev)"
-		path="$(echo $doc | rev | cut -d / -f 2- | rev)"
-		cd $path; path=$(pwd); cd $dest
-		title=$(echo $filename | cut -d . -f 1)
-		tmpdir="/tmp/mkpdf/$title"
-		# Check source file for template
-		if ! [[ $template ]] && [[ $(cat $doc | grep '<!--template="') ]]; then
-			template="$(cat $doc | grep '<!--template="' | head -1 | cut -d '"' -f 2)"
-			fix_template_path
-		fi
-
-	elif [[ $mode = toc ]]; then
-		cd $path; path=$(pwd); cd $dest
-		title="$(echo $path | rev | cut -d / -f 1 | rev)"
-		tmpdir="/tmp/mkpdf/$title"
-		filename="mkpdf.$title.markdown"
-	fi
-}
-#}}}
-
-
-
-####################################
-#	Main Part
-####################################
-
-get_input $@
-check_file_integrity
-process_input
-
-
-
-	# Set up tmpdir
-	! [[ -d $tmpdir ]] && mkdir -p "$tmpdir"
-	#start/reset log
-	echo $(date): running mkpdf > $tmpdir/mkpdf.log
-	echo >> $tmpdir/mkpdf.log
-	# Refresh links
-	cp -rsf $path/* $tmpdir &>> $tmpdir/mkpdf.log
-
-
-### Changing into tmpdir ###
-	cd $tmpdir
-
-
-# TOC-MODE ASSEMBLE
-# already converts all parts
-[[ $mode = toc ]] && toc_assemble
-
-# convert master file
-convert_to_latex full "$filename" "mkpdf.$title.tex"
-
-	# Exit on error
-	if ! [[ -f mkpdf.$title.tex ]]; then
-		echo ERROR: pandoc failed to convert $filename
-		echo ERROR: pandoc failed to convert $filename >> mkpdf.log
-		exit 1
-		fi
-
-# convert on to pdf
-latexmk -pdf -jobname=$title mkpdf.$title.tex &> latexmk.log
-
-	# Exit on error
-	if ! [[ -f $title.pdf ]]; then
-		echo ERROR: latexmk failed to generate $title.pdf
-		echo ERROR: latexmk failed to generate $title.pdf >> mkpdf.log
-		exit 1
-		fi
-
-# Copy pdf to output dir
-cp $title.pdf $dest &>> mkpdf.log
-	echo >> mkpdf.log
-	echo Successfully created $title.pdf >> mkpdf.log
