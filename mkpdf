@@ -52,6 +52,7 @@ reset_logs() {
 
 print_help() {
    cat <<EOF
+
 Usage: ${0##*/} [options] <directory>
    Or: ${0##*/} [options] [files]
 
@@ -70,6 +71,7 @@ EOF
 
 print_help_toc() {
    cat <<EOF
+
 mkpdf toc-mode:
 
   You may include a 'toc.conf' text file in a directory
