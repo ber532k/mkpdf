@@ -292,7 +292,7 @@ done
 # Get which mode to run in
 
 if ! [[ $files ]]; then
-	if [[ -f toc.conf ]]; then
+	if ! [[ $debug = 1 ]] && [[ -f toc.conf ]]; then
 		mode=toc
 		tocdir=$PWD
 	else
