@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 ####################################
 ##	Quick Changes
 ####################################
@@ -10,37 +9,25 @@ template_dirs="$HOME/.mkpdf /usr/share/pandoc/data/templates"
 
 
 
-
-
 ####################################
 ##	Output functions
 ####################################
 
-say_info() {
-	echo $@ | while read line; do
-		echo "    $line"
-		say_log < echo "INFO:    $line"
-	done
+print() {
+	echo "    $@"
+	logonly "$@"
 }
 
-say_error() {
-	echo $@ | while read line; do
-		echo "$line"
-		say_log < echo "ERROR:   $line"
-	done
+log() {
+	logonly $@
+	[[ $debug = 1 ]] && echo "$@"
 }
 
-say_log() {
-	echo $@ >> $tmpdir/mkpdf.log
-	[[ $debug = 1 ]] && echo $@
+logonly() {
+	echo -e "$(date +"%y-%m-%d %H:%M")\t$@" >> $tmpdir/mkpdf.log
 }
 
-say_latexmklog() {
-	echo $@ >> $tmpdir/latexmk.log
-	[[ $debug = 1 ]] && echo $@
-}
-
-reset_logs() {
+reset_log() {
 	rm -f $tmpdir/mkpdf.log
 	rm -f $tmpdir/latexmk.log
 }
@@ -53,14 +40,15 @@ reset_logs() {
 print_help() {
    cat <<EOF
 
-Usage: ${0##*/} [options] <directory>
-   Or: ${0##*/} [options] [files]
+Usage: mkpdf [options] <directory>
+   Or: mkpdf [options] [files]
 
 Options:
-  -C  --clean		Clean up all tmpdirs and exit
-  -c			Clean up corresponding tmpdir just
-			before running the program
+  -c  --clean		Remove all temporary files and exit
   -d  --debug		Print latexmk's output
+  -f  --fresh		Remove auxiliary files before running
+			latexmk
+  -p  --preview		Open pdf once generated
   -h  --help		Print this help and exit
       --help-toc	Print info on how to use toc-mode
       --basic-toc	Print an example of a basic toc.conf
@@ -161,14 +149,13 @@ while true; do
 	fi
 	done
 	echo
-	echo
+	echo     ______________________
 	read -p "Hit Enter to run again" </dev/tty
 	echo
 	echo
 	echo
 done
 }
-
 
 fix_template_path() {
 # Usage: have template= set; the function will search some
@@ -186,8 +173,8 @@ fi
 
 # Check if file was found
 if ! [[ -f $template ]]; then
-	say_error "ERROR: Template $template not found!"
-	say_error "       Using default template instead"
+	print "ERROR: Template $template not found!"
+	print "       Using default template instead"
 	template=$default_template
 fi
 }
@@ -197,7 +184,7 @@ assemble_toc() {
 #	- files=...		list of files for pandoc to take as input
 #	$tmpdir/head.md		containing metadata from toc.conf
 
-say_info Reading toc.conf
+print "Reading toc.conf"
 
 head=$tmpdir/head.md
 [[ -f $head ]] && rm $head
@@ -238,9 +225,13 @@ clean_all() {
 
 
 
-######################################
-##	Main Part
-######################################
+################################################
+##	Processing Input
+################################################
+#
+# Only set variables
+# Do not write to disk in this part
+#
 
 # unset variables (just in case)
 unset template
@@ -251,8 +242,11 @@ unset mode
 unset tocdir
 unset title
 unset tmpdir
+unset preview
 
-
+################
+# Get Input
+################
 # set variables [""|1] for all possible options
 # set template=... if supplied from the commandline
 # for help print help and exit
@@ -275,22 +269,24 @@ while [[ $1 ]]; do
 		template=$1
 	elif [[ $1 = --template=* ]]; then
 		template="$(echo $1 | sed s/--template=//g)"
-	elif [[ $1 = -c ]]; then
+	elif [[ $1 = -f ]] || [[ $1 = --fresh ]]; then
 		cleanone=1
-	elif [[ $1 = -C ]] || [[ $1 = --clean ]]; then
+	elif [[ $1 = -c ]] || [[ $1 = --clean ]]; then
 		clean_all
 		exit 0
 	elif [[ $1 = -d ]] || [[ $1 = --debug ]]; then
 		debug=1
+	elif [[ $1 = -p ]] || [[ $1 = --preview ]]; then
+		preview=1
 	else
 		[[ $files ]] &&	files="$files $1" || files="$1"
 	fi
 	shift
 done
 
-
-# Get which mode to run in
-
+################
+# Get mode
+################
 if ! [[ $files ]]; then
 	if ! [[ $debug = 1 ]] && [[ -f toc.conf ]]; then
 		mode=toc
@@ -298,6 +294,9 @@ if ! [[ $files ]]; then
 	else
 		mode=empty
 	fi
+elif [[ $files = '.' ]]; then
+	mode=toc
+	tocdir=$PWD
 elif [[ -d $files ]]; then
 	mode=toc
 	tocdir="$files"
@@ -306,18 +305,9 @@ else
 	mode=file
 fi
 
-# For mode empty:
-if [[ $mode = empty ]]; then
-	if [[ $debug = 1 ]]; then
-		debug_log_loop
-	else
-		print_help
-	fi
-	exit 0
-fi
-
-
+################
 # Get title
+################
 if [[ $mode = toc ]]; then
 	if [[ $(echo $tocdir | rev | cut -c1) = / ]]; then
 		title="$(echo $tocdir | rev | cut -d / -f 2 | rev)"
@@ -328,81 +318,137 @@ elif [[ $mode = file ]]; then
 	title="$(echo $files | cut -d ' ' -f 1 | rev | cut -d / -f 1 | rev | cut -d . -f 1)"
 fi
 tmpdir="/tmp/mkpdf/$title"
+
+
+#################################################
+##	Executing commands
+#################################################
+
+###############
+# Reset
+###############
 ! [[ -d $tmpdir ]] && mkdir -p $tmpdir
-reset_logs
+reset_log
+
+###############
+# Mode empty
+###############
+if [[ $mode = empty ]]; then
+	if [[ $debug = 1 ]]; then
+		debug_log_loop
+	else
+		print_help
+	fi
+	exit 0
+fi
 
 
+###############
+# TOC-Preparations
+###############
 
-# Check if toc.conf exists
-# Else print error message and exit
-
+# Error or assemble
 if [[ $mode = toc ]]; then
 	if ! [[ -f $tocdir/toc.conf ]]; then
-		if [[ $tocdir = "" ]]; then
-			say_error FATAL: toc.conf not found
-			exit 1
-		else
-			say_error FATAL: $tocdir/toc.conf not found
-			exit 1
-		fi
-	fi
-fi
-
-
-! [[ $template ]] && template=$default_template
-fix_template_path
-
-# autocleanup if the template changed or -c option was specified resulting in cleanone=1
-templatesum="$(md5sum $template | cut -d ' ' -f 1)"
-[[ -f $tmpdir/template.md5sum ]] && [[ $(cat $tmpdir/template.md5sum) = $templatesum ]] || cleanone=1
-echo $templatesum > $tmpdir/template.md5sum
-if [[ $cleanone = 1 ]]; then
-	say_info Removing old tmpfiles
-	rm -rf $tmpdir/latexmk
-fi
-
-
-# Set up tmpdir
-! [[ -d $tmpdir/latexmk ]] && mkdir "$tmpdir/latexmk"
-
-# Assemble toc
-[[ $mode = toc ]] && assemble_toc
-
-# Check if all files exist
-	for f in $files; do
-	if ! [[ -f $f ]]; then
-		say_error FATAL: file $f not found.
+		print FATAL: $tocdir/toc.conf not found
 		exit 1
 	fi
-	done
+	assemble_toc
+fi
+
+#################
+# Check files exist
+#################
+
+for f in $files; do
+	if ! [[ -f $f ]]; then
+		print FATAL: file $f not found.
+		exit 1
+	fi
+done
 
 
-# Get variables for pandoc
+#################
+# Get template
+#################
+
+# check in toc.conf
+if ! [[ $template ]] && [[ $mode = toc ]]; then
+	template="$(cat $tocdir/toc.conf | grep template= | grep -e '[%|#|<!]' | head -1 | sed 's/[%|#| |"]//g' | sed 's/<!--//g' | sed 's/-->//g' | sed 's/template=//g')"
+fi
+
+# check in files
+if ! [[ $template ]]; then
+	template="$(cat $files | grep template= | head -1 | grep '<!--' | sed 's/<!--//g' | sed 's/-->//g' | sed 's/[ |"]//g' | sed 's/template=//g')"
+fi
+
+# else use default
+! [[ $template ]] && template=$default_template
+
+# fix path
+fix_template_path
+
+
+#################
+# Pandoc
+#################
+
+# Get variables
 [[ $(cat $template | grep '\documentclass{beamer}') ]] && to=beamer || to=latex
 
 # invoke pandoc
-say_info Converting files to latex
+print Converting files to latex
 pandoc -f markdown -t $to --file-scope --wrap=preserve --biblatex --template=$template -o $tmpdir/master.tex $files
 
 # Exit on error
 if ! [[ -f $tmpdir/master.tex ]]; then
-	say_error FATAL: pandoc failed to generate master.tex
+	print FATAL: pandoc failed to generate master.tex
 	exit 1
 fi
 
-# furbish output if script exists
+
+##################
+# Furbishtex
+##################
 [[ $(which furbishtex) ]] && furbishtex $tmpdir/master.tex
 
-say_info Running latexmk
-latexmk -pdf -outdir=$tmpdir/latexmk $tmpdir/master.tex &>> $tmpdir/latexmk.log
 
+##################
+# Latexmk
+##################
+
+# autocleanup if the template changed or -c option was
+# specified resulting in cleanone=1
+templatesum="$(md5sum $template | cut -d ' ' -f 1)"
+[[ -f $tmpdir/template.md5sum ]] && [[ $(cat $tmpdir/template.md5sum) = $templatesum ]] || cleanone=1
+echo $templatesum > $tmpdir/template.md5sum
+if [[ $cleanone = 1 ]]; then
+	print Removing old tmpfiles
+	rm -rf $tmpdir/latexmk
+fi
+
+# Set up latexmk tmpdir
+! [[ -d $tmpdir/latexmk ]] && mkdir "$tmpdir/latexmk"
+
+
+print Running latexmk
+if [[ $debug = 1 ]]; then
+	latexmk -pdf -outdir=$tmpdir/latexmk $tmpdir/master.tex
+else
+	latexmk -pdf -outdir=$tmpdir/latexmk $tmpdir/master.tex &>> $tmpdir/latexmk.log
+fi
+
+# Exit on error
 if ! [[ -f $tmpdir/latexmk/master.pdf ]]; then
-	say_error FATAL: Latexmk failed to generate pdf file
+	print FATAL: Latexmk failed to generate pdf file
 	exit 1
 fi
 
-say_info "Exporting output file"
+
+#################
+# Finish up
+#################
+print "Exporting output: $title.pdf"
 cp -f $tmpdir/latexmk/master.pdf $title.pdf
 
-
-
+[[ $preview = 1 ]] && exo-open $title.pdf
