@@ -1,16 +1,18 @@
 #!/bin/bash
 
 if [[ $1 = -h ]] || [[ $1 = --help ]] || [[ $# = 0 ]]; then
-	echo "Usage: furbishtex <file1> [file2] [file3] ..."
-	echo
-	echo "Configuration:"
-	echo "    Furbishtex will search both /usr/share/furbishtex"
-	echo "  and \$HOME/.furbishtex and pass all the files from"
-	echo "  these directories on to sed to apply to the files"
-	echo "  given from the command line."
-	echo "    Furbishtex is thus configured in sed's script"
-	echo "  language."
-	echo
+   cat <<EOF
+Usage: furbishtex [files]
+
+Configuration:
+    Furbishtex will search both /usr/share/furbishtex
+    and \$HOME/.furbishtex and pass all the files from
+    these directories on to sed to apply to the files
+    given from the command line.
+    Furbishtex is thus configured in sed's script
+    language.
+
+EOF
 	exit 0
 fi
 
