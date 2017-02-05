@@ -105,9 +105,13 @@ EOF
 
 print_basic_toc() {
    cat <<EOF
+# template=default.latex
+
 intro.txt
+
 ch1.txt
 ch2.txt
+
 EOF
 }
 
@@ -123,14 +127,17 @@ intro-p1.txt
 intro-p2.txt
 	intro-p3.txt # Indent doesn't make a difference
 
+% template="default.beamer"
+
 ---
 date: 01/01/2017
 ---
 
+<!--template=default.latex-->
 <!--
-ToDo:
-  - actually write the chapters
-  - think of a better title
+This template will be ignored, as it is not the first one.
+Also note that template specification should occur in single-line
+comments which don't contain anything but template=FILE
 -->
 
 # First Chapter
