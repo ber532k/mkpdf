@@ -29,7 +29,8 @@ Of course this program depends on
 - texlive (or probably even some other latex distribution)
 
 Also some basic command line utils are used, but these should be included
-in every GNU/Linux system by default. If not please drop me a message.
+in every GNU/Linux system by default. Please drop me a message, if this is
+not the case.
 
 ## Usage
 
@@ -42,7 +43,7 @@ Options:
   -d  --debug           Print latexmk's output
   -f  --fresh           Remove auxiliary files before running
                         latexmk
-  -o  --output          Specify the name for the pdf output
+  -o  --output          Specify a name for the output file
   -p  --preview         Open pdf once generated
   -t  --template        Specify a template to use with pandoc
   -h  --help            Print this help and exit
