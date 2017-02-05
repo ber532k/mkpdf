@@ -65,6 +65,7 @@ Options:
   -d  --debug           Print latexmk's output
   -f  --fresh           Remove auxiliary files before running
                         latexmk
+  -o  --output          Specify the name for the pdf output
   -p  --preview         Open pdf once generated
   -t  --template        Specify a template to use with pandoc
   -h  --help            Print this help and exit
@@ -271,6 +272,7 @@ unset tocdir
 unset title
 unset tmpdir
 unset preview
+unset output
 
 ################
 # Get Input
@@ -297,6 +299,11 @@ while [[ $1 ]]; do
 		template=$1
 	elif [[ $1 = --template=* ]]; then
 		template="$(echo $1 | sed s/--template=//g)"
+	elif [[ $1 = -o ]] || [[ $1 = --output ]]; then
+		shift
+		output=$1
+	elif [[ $1 = --output=* ]]; then
+		output="$(echo $1 | sed s/--output=//g)"
 	elif [[ $1 = -f ]] || [[ $1 = --fresh ]]; then
 		cleanone=1
 	elif [[ $1 = -c ]] || [[ $1 = --clean ]]; then
@@ -450,7 +457,7 @@ fi
 templatesum="$(md5sum $template | cut -d ' ' -f 1)"
 [[ -f $tmpdir/template.md5sum ]] && [[ $(cat $tmpdir/template.md5sum) = $templatesum ]] || cleanone=1
 echo $templatesum > $tmpdir/template.md5sum
-if [[ $cleanone = 1 ]]; then
+if [[ $cleanone = 1 ]] && [[ -d $tmpdir/latexmk ]]; then
 	print Removing auxiliary files
 	rm -rf $tmpdir/latexmk
 fi
@@ -476,7 +483,8 @@ fi
 #################
 # Finish up
 #################
-print "Exporting output: $title.pdf"
-cp -f $tmpdir/latexmk/master.pdf $title.pdf
+! [[ $output ]] && output="$title.pdf"
+print "Exporting output: $output"
+cp -f $tmpdir/latexmk/master.pdf $output
 
-[[ $preview = 1 ]] && exo-open $title.pdf
+[[ $preview = 1 ]] && exo-open $output

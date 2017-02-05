@@ -27,6 +27,7 @@ Options:
   -d  --debug           Print latexmk's output
   -f  --fresh           Remove auxiliary files before running
                         latexmk
+  -o  --output          Specify the name for the pdf output
   -p  --preview         Open pdf once generated
   -t  --template        Specify a template to use with pandoc
   -h  --help            Print this help and exit
