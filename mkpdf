@@ -237,7 +237,7 @@ done < <(cat toc.conf | sed s/'<!--.*-->'//g | sed s/'#.*'//g | sed s/'%.*'//g)
 
 clean_all() {
 	if [[ -d /tmp/mkpdf ]]; then
-		rm -r /tmp/mkpdf && echo Successfully removed all tmpfiles
+		rm -r /tmp/mkpdf && echo Successfully removed all temporary files
 	else
 		echo No files left to remove
 	fi
@@ -444,7 +444,7 @@ templatesum="$(md5sum $template | cut -d ' ' -f 1)"
 [[ -f $tmpdir/template.md5sum ]] && [[ $(cat $tmpdir/template.md5sum) = $templatesum ]] || cleanone=1
 echo $templatesum > $tmpdir/template.md5sum
 if [[ $cleanone = 1 ]]; then
-	print Removing old tmpfiles
+	print Removing auxiliary files
 	rm -rf $tmpdir/latexmk
 fi
 
