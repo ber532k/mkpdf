@@ -7,6 +7,12 @@ written in pandoc's markdown.
 
 ## Installing
 
+### Arch Linux
+
+There is a package in the AUR, so use something like ``pacaur -S mkpdf``
+
+### Manual Installation
+
 Add the following files to your PATH and make sure they are executable:
 
 - mkpdf
