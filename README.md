@@ -44,10 +44,10 @@ mkpdf toc-mode:
   toc.conf syntax:
     - Empty lines will be ignored
     - Comments will also be ignored:
-	* Bash-style comments starting with #
-	* Latex-style comments starting with %
-	* HTML-style comments (either single- or multi-
-	  line)
+        * Bash-style comments starting with #
+        * Latex-style comments starting with %
+        * HTML-style comments (either single- or multi-
+          line)
     - A template may be specified in any comment
       containing template="FILE". This comment should
       not contain anything else.
