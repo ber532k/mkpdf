@@ -82,7 +82,7 @@ mkpdf toc-mode:
 
   You may include a 'toc.conf' text file in a directory
   and run mkpdf in that directory or with the directory
-  as an argument
+  as an argument.
 
   toc.conf syntax:
     - Empty lines will be ignored
@@ -91,11 +91,14 @@ mkpdf toc-mode:
 	* Latex-style comments starting with %
 	* HTML-style comments (either single- or multi-
 	  line)
+    - A template may be specified in any comment
+      containing template="FILE". This comment should
+      not contain anything else.
     - YAML-style headers will be passed on to pandoc
-      and thus used directly in creating the output
+      and thus used directly in creating the output.
     - The remaining lines will be interpreted as paths
       pointing to markdown files to be included in the
-      output in the same order they are specified
+      output in the same order they are specified.
 
 EOF
 }
