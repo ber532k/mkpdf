@@ -28,7 +28,7 @@ Options:
   -f  --fresh           Remove auxiliary files before running
                         latexmk
   -p  --preview         Open pdf once generated
-  -t  --template        Specify a template to use with pandoc.
+  -t  --template        Specify a template to use with pandoc
   -h  --help            Print this help and exit
       --help-toc        Print info on how to use toc-mode
       --basic-toc       Print an example of a basic toc.conf
