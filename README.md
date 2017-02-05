@@ -16,9 +16,9 @@ If furbishtex is found in your PATH and executable it will be called
 before running latexmk. See ``furbishtex -h`` for further explanation.
 
 
-## Using mkpdf
+## Usage
 
-
+```
 Usage: mkpdf [options] <directory>
    Or: mkpdf [options] [files]
 
@@ -56,4 +56,4 @@ mkpdf toc-mode:
     - The remaining lines will be interpreted as paths
       pointing to markdown files to be included in the
       output in the same order they are specified.
-
+```
