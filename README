@@ -15,6 +15,15 @@ Add the following files to your PATH and make sure they are executable:
 If furbishtex is found in your PATH and executable it will be called
 before running latexmk. See ``furbishtex -h`` for further explanation.
 
+## Dependencies
+
+Of course this program depends on
+
+- pandoc
+- texlive (or probably even some other latex distribution)
+
+Also some basic command line utils are used, but these should be included
+in every GNU/Linux system by default. If not please drop me a message.
 
 ## Usage
 
