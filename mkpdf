@@ -409,12 +409,18 @@ done
 
 # check in toc.conf
 if ! [[ $template ]] && [[ $mode = toc ]]; then
-	template="$(cat $tocdir/toc.conf | grep template= | grep -e '[%|#|<!]' | head -1 | sed 's/[%|#| |"]//g' | sed 's/<!--//g' | sed 's/-->//g' | sed 's/template=//g')"
+	template="$(grep template= $tocdir/toc.conf | grep -e '[%|#|<!]' | head -1 | sed 's/[%|#| |"]//g' | sed 's/<!--//g' | sed 's/-->//g' | sed 's/template=//g')"
+	[[ $template ]] && template="$tocdir/$template"
 fi
 
 # check in files
 if ! [[ $template ]]; then
-	template="$(cat $files | grep template= | head -1 | grep '<!--' | sed 's/<!--//g' | sed 's/-->//g' | sed 's/[ |"]//g' | sed 's/template=//g')"
+	template="$(grep -H template= $files | head -1 | grep '<!--' | sed 's/<!--//g' | sed 's/-->//g' | sed 's/[ |"]//g' | sed 's/template=//g')"
+	if [[ $(echo $template | grep /.*:) ]]; then
+		template=$(echo $template | sed s,/.*:,/,g)
+	else
+		template=$(echo $template | sed s,.*:,,g)
+	fi
 fi
 
 # else use default
