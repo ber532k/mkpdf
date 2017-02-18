@@ -473,11 +473,18 @@ fi
 
 
 print Running latexmk
-if [[ $debug = 1 ]]; then
-	latexmk -pdf -outdir=$tmpdir/latexmk $tmpdir/master.tex
-else
-	latexmk -pdf -outdir=$tmpdir/latexmk $tmpdir/master.tex &>> $tmpdir/latexmk.log
+dest=$PWD
+if [[ $tocdir ]]; then
+	cd $tocdir
+elif [[ $(echo $files | cut -d ' ' -f 1 | grep /) ]]; then
+	cd $(echo $files | cut -d ' ' -f 1 | rev | cut -d / -f 2- | rev)
 fi
+if [[ $debug = 1 ]]; then
+	latexmk -pdf -xelatex -outdir=$tmpdir/latexmk $tmpdir/master.tex
+else
+	latexmk -pdf -xelatex -outdir=$tmpdir/latexmk $tmpdir/master.tex &>> $tmpdir/latexmk.log
+fi
+cd $dest
 
 # Exit on error
 if ! [[ -f $tmpdir/latexmk/master.pdf ]]; then
@@ -493,4 +500,6 @@ fi
 print "Exporting output: $output"
 cp -f $tmpdir/latexmk/master.pdf $output
 
-[[ $preview = 1 ]] && exo-open $output
+[[ $preview = 1 ]] && exo-open $output &
+
+exit 0
