@@ -17,6 +17,8 @@ Add the following files to your PATH and make sure they are executable:
 
 - mkpdf
 - furbishtex (optional)
+    * for furbishtex to do something you will also want to
+      move default.sed to /usr/share/furbishtex
 
 Or just run ``sudo make install``, but make sure the makefile will work
 with your distribution. Drop me a message if not so.
