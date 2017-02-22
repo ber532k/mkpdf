@@ -18,6 +18,9 @@ Add the following files to your PATH and make sure they are executable:
 - mkpdf
 - furbishtex (optional)
 
+Or just run ``sudo make install``, but make sure the makefile will work
+with your distribution. Drop me a message if not so.
+
 If furbishtex is found in your PATH and executable it will be called
 before running latexmk. See ``furbishtex -h`` for further explanation.
 
