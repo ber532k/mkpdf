@@ -436,7 +436,7 @@ fix_template_path
 
 # Get variables
 [[ $(cat $template | grep '\documentclass{beamer}') ]] && to=beamer || to=latex
-[[ $(which shinytex) ]] && filter="--filter=shinytex" || filter=""
+[[ $(which shinytex 2>/dev/null) ]] && filter="--filter=shinytex" || filter=""
 
 # invoke pandoc
 print Converting files to latex
@@ -452,7 +452,7 @@ fi
 ##################
 # Furbishtex
 ##################
-[[ $(which furbishtex) ]] && ! [[ $(which shinytex) ]] && furbishtex $tmpdir/master.tex
+[[ $(which furbishtex 2>/dev/null) ]] && ! [[ $(which shinytex 2>/dev/null) ]] && furbishtex $tmpdir/master.tex
 
 
 ##################
