@@ -440,7 +440,7 @@ fix_template_path
 
 # invoke pandoc
 print Converting files to latex
-pandoc -f markdown -t $to --file-scope --wrap=preserve --biblatex $filter --template=$template -o $tmpdir/master.tex $files
+pandoc -t $to --file-scope --wrap=preserve --biblatex $filter --template=$template -o $tmpdir/master.tex $files
 
 # Exit on error
 if ! [[ -f $tmpdir/master.tex ]]; then
