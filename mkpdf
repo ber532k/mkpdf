@@ -457,12 +457,12 @@ done
 # Pandoc
 #################
 
-# Get to beamer or set to latex
+# Get to=beamer or set to=latex
 # If template contains \documentclass ... {beamer}
 if [[ $(cat $template | grep '\documentclass' | grep '{beamer}') ]]; then
 	to=beamer
 # If template name ends with beamer
-elif [[ "$(cat $template | rev | cut -d '.' -f 1 | rev )" = beamer ]]; then
+elif [[ "$(echo $template | rev | cut -d '.' -f 1 | rev )" = beamer ]]; then
 	to=beamer
 else
 	to=latex
