@@ -2,7 +2,7 @@
 
 This is a simple command line wrapper around pandoc and latexmk
 written in bash. It will generate pdf output from one or more files
-written in pandoc's markdown.
+written in pandoc's markdown using a specified template.
 
 
 ## Installing
@@ -39,7 +39,7 @@ Also some basic command line utils are used, but these should be included
 in every GNU/Linux system by default. Please drop me a message, if this is
 not the case.
 
-## Usage
+## Usage (released version)
 
 ```
 Usage: mkpdf [options] <directory>
