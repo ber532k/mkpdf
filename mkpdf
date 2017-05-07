@@ -21,7 +21,8 @@
 ####################################
 
 ##  Source libraries and config
-lib=/usr/lib/mkpdf
+lib=/usr/lib/mkpdf/lib
+bin=/usr/lib/mkpdf/bin
 data=/usr/share/mkpdf
 conf=$HOME/.config/mkpdf
 source $lib/help.sh || exit 1
@@ -81,12 +82,12 @@ fi
 # Be smart about filters
 [[ $ttype = beamer ]] && handout_filter=0
 [[ $ftype = bib ]] && handout_filter=0
-[[ $handout_filter  = 1 ]] && pandoc_options+=" --filter=pandoc-handout "
+[[ $handout_filter  = 1 ]] && pandoc_options+=" --filter=$bin/pandoc-handout "
 
 
 ##  Run stuff
 run_pandoc
-[[ $furbishtex_postprocessor ]] && furbishtex $tmpdir/master.tex
+[[ $furbishtex_postprocessor ]] && $bin/furbishtex $tmpdir/master.tex
 run_latexmk
 
 
