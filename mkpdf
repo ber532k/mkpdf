@@ -30,7 +30,6 @@ handout_filter=1
 shinytex_filter=0
 furbishtex_postprocessor=1
 fresh_runs=0
-filters=""
 
 # Get user-specific config
 [[ -f $HOME/.config/mkpdf/config ]] && source $HOME/.config/mkpdf/config
@@ -114,9 +113,6 @@ furbishtex_postprocessor=1
 
 # Implicitly set -f flag by default
 fresh_runs=0
-
-# Use the following pandoc filters by default:
-filters="--filter=my_custom_script --filter=also-in-PATH"
 ________________________________________________________________
 
 EOF
@@ -256,6 +252,51 @@ clean_all() {
 	fi
 }
 
+parse_bib_titleblock() {
+    # Input:  single filename (or multiple, but all but
+    #         the first filename will be ignored)
+    # Output: writes YAML-Block to $tmpdir/meta.md
+
+    field=('title' 'author' 'date')
+    i=0
+
+    # Rules for grep
+    match='^%%%%* *mkpdf *%%%%*$'
+    opt=--ignore-case
+
+    if [[ "$(grep --after-context=1 $opt "$match" $1 | head -2 | grep '% *---')" ]]; then
+        # Treat as yaml-block
+        export parse=0
+        cat $1 | while read line; do
+            if [[ $parse = 2 ]]; then
+                if [[ "$(echo $line | grep '% *---')" ]] || [[ "$(echo $line | grep '% *\.\.\.')" ]]; then
+                    echo --- >> $tmpdir/meta.md
+                    break
+                elif [[ $line ]] && [[ "$(echo $line | grep '^%')" ]]; then
+                    echo "$line" | sed 's/^%[ ]//g' >> $tmpdir/meta.md
+                fi
+            elif [[ $parse = 1 ]] && [[ "$(echo $line | grep '% *---')" ]]; then
+                echo --- > $tmpdir/meta.md
+                parse=2
+            elif [[ $parse = 0 ]] && [[ "$(echo $line | grep $opt "$match")" ]]; then
+                parse=1
+            fi
+        done
+    else
+        # Treat as pandoc-metadata
+        echo --- > $tmpdir/meta.md
+        grep --after-context=3 $opt "$match" $1 |
+            head -4 | tail -3 |
+            sed 's/^[^%].*//g' |
+            sed 's/^% *//g' |
+            while read line; do
+		[[ $line ]] && echo "${field[i]}: $line" >> $tmpdir/meta.md
+                i=$i+1
+            done
+        echo --- >> $tmpdir/meta.md
+    fi
+
+}
 
 
 
@@ -454,29 +495,62 @@ done
 
 
 #################
-# Pandoc
+# Check file type
 #################
 
-# Get to=beamer or set to=latex
-# If template contains \documentclass ... {beamer}
-if [[ $(cat $template | grep '\documentclass' | grep '{beamer}') ]]; then
-	to=beamer
-# If template name ends with beamer
-elif [[ "$(echo $template | rev | cut -d '.' -f 1 | rev )" = beamer ]]; then
-	to=beamer
+x="$(echo $files | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)"
+if [[ $x = bib ]] || [[ $x = bibtex ]] || [[ $x = biblatex ]]; then
+	filetype=bib
 else
-	to=latex
+	filetype=std
+fi
+
+
+#################
+# Set options
+#################
+
+# Global options
+pandoc_options="--file-scope --wrap=preserve --biblatex -o $tmpdir/master.tex"
+
+# Specific options
+if [[ $filetype = bib ]]; then
+    tocdir=$PWD
+    pandoc_options+=" -t latex"
+    for f in $files; do
+        pandoc_options+=" --bibliography=$f"
+    done
+    parse_bib_titleblock $files
+    files="$tmpdir/meta.md"
+    if [[ -f $HOME/.config/mkpdf/bib.md ]]; then
+        files+=" $HOME/.config/mkpdf/bib.md"
+    else
+        files+=" /usr/share/mkpdf/bib.md"
+    fi
+else
+    # Get to=beamer or set to=latex
+    # If template contains \documentclass ... {beamer}
+    if [[ $(cat $template | grep '\documentclass' | grep '{beamer}') ]]; then
+        pandoc_options+=" -t beamer"
+    # If template name ends with beamer
+    elif [[ "$(echo $template | rev | cut -d '.' -f 1 | rev )" = beamer ]]; then
+        pandoc_options+=" -t beamer"
+    else
+        pandoc_options+=" -t latex"
+    fi
 fi
 
 # Be smart about filters
 [[ $to = beamer ]] && handout_filter=0
 
 # Set filters
-[[ $handout_filter  = 1 ]] && filters+=" --filter=pandoc-handout "
+[[ $handout_filter  = 1 ]] && pandoc_options+=" --filter=pandoc-handout "
 
+###################
 # invoke pandoc
+###################
 echo "    Converting files to latex"
-pandoc -t $to --file-scope --wrap=preserve --biblatex $filters --template=$template -o $tmpdir/master.tex $files
+pandoc $pandoc_options $pandoc_options1 --template=$template $files
 
 # Exit on error
 if ! [[ -f $tmpdir/master.tex ]]; then
