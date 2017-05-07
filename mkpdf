@@ -16,600 +16,83 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 ####################################
-##	Variable setup
-####################################
-
-# Configurable defaults
-default_template=default.latex
-template_dirs="/usr/share/pandoc/data/templates"
-debug_info=0
-auto_preview=0
-handout_filter=1
-shinytex_filter=0
-furbishtex_postprocessor=1
-fresh_runs=0
-
-# Get user-specific config
-[[ -f $HOME/.config/mkpdf/config ]] && source $HOME/.config/mkpdf/config
-
-# Internal variables (not configurable)
-unset template
-unset files
-unset mode
-unset tocdir
-unset title
-unset tmpdir
-unset output
-
-
-####################################
-##	Help Functions
+##	Main Part
 ####################################
 
-print_help() {
-   cat <<EOF
-
-Usage: mkpdf [options] <directory>
-   Or: mkpdf [options] [files]
-
-Options:
-  -c  --clean           Remove all temporary files and exit
-  -d  --debug           Print latexmk's output
-  -f  --fresh           Remove auxiliary files before running
-                        latexmk
-  -o  --output          Specify a name for the output file
-  -p  --preview         Open pdf once generated
-  -t  --template        Specify a template to use with pandoc
-      --set             Set a config-option from command line
-  -h  --help            Print this help and exit
-      --help-toc        Print info on how to use toc-mode
-      --help-config     Print info on possible config options
-      --example-toc     Print an example of a basic toc.conf
-
-Specifying templates:
-      If no template is set from the command line, mkpdf will check
-      either toc.conf or the input files if any of them specify a
-      variable like 'template: default.latex'. While this is also
-      a usual (though probably not processed) variable for pandoc,
-      mkpdf will use it to determine what template to use.
-
-EOF
-}
-
-print_help_config() {
-   cat <<EOF
-
-Some user-specific defaults can be set in \$HOME/.config/mkpdf/config
-Here is an example config file containing all possible options:
-
-________________________________________________________________
-
-# mkpdf configuration file
-
-# template to be used as default and fallback
-default_template=default.latex
-
-# List of directories where mkpdf is supposed to look
-# for templates (separated by spaces)
-template_dirs="/usr/share/pandoc/data/templates \$HOME/.templates"
-
-# Implicitly set -d flag by default
-debug_info=0
-
-# Implicitly set -p flag by default
-auto_preview=0
-
-# Use mkpdfs own filter for handouts when the output
-# is not beamer?
-# This will strip paragraphs reading "---" or ". . ."
-# before writing standard latex output.
-handout_filter=1
-
-# Use furbishtex postprocessor for improving typography in the
-# pandocs output (may lead to problems if used on codeblocks)
-furbishtex_postprocessor=1
-
-# Implicitly set -f flag by default
-fresh_runs=0
-________________________________________________________________
-
-EOF
-}
-
-print_help_toc() {
-   cat <<EOF
-
-mkpdf toc-mode:
-
-  You may include a 'toc.conf' text file in a directory
-  and run mkpdf in that directory or with the directory
-  as an argument.
-
-  toc.conf syntax:
-    - Empty lines will be ignored
-    - Comments will also be ignored:
-        * Bash-style comments starting with #
-        * Latex-style comments starting with %
-        * HTML-style comments (either single- or multi-
-          line)
-    - YAML-style headers will be passed on to pandoc
-      and thus used directly in creating the output.
-    - The remaining lines will be interpreted as paths
-      pointing to markdown files to be included in the
-      output in the same order they are specified.
-
-EOF
-}
-
-print_basic_toc() {
-   cat <<EOF
-
----
-author: Max Mustermann
-title: Some example document
-template: default.latex
----
-
-# Intro
-intro.txt
-
-# Chapters
-ch1.txt
-ch2.txt
-
-EOF
-}
+##  Source libraries and config
+lib=/usr/lib/mkpdf
+data=/usr/share/mkpdf
+conf=$HOME/.config/mkpdf
+source $lib/help.sh || exit 1
+source $lib/general.sh || exit 1
+source $lib/run.sh || exit 1
+source $data/config || exit 1
+[[ -f $conf/config ]] && source $conf/config
 
 
-####################################
-##	Other Functions
-####################################
-
-debug_log_loop() {
-while true; do
-	find /tmp/mkpdf | grep latexmk.log | while read logfile; do
-	if [[ "$(cat $logfile | tail -1 | grep 'Latexmk: All targets' | grep 'are up-to-date')" ]]; then
-		echo "$logfile"
-		echo "    is clean (i. e. latexmk finished ok)"
-		echo
-	else
-		cat $logfile
-		echo
-		echo -------------------------------
-		echo Above is the content of $logfile
-		echo -------------------------------
-		read -p "Hit Enter to search for further errors" </dev/tty
-		echo
-		echo
-		echo
-	fi
-	done
-	echo
-	echo     ______________________
-	read -p "Hit Enter to run again" </dev/tty
-	echo
-	echo
-	echo
-done
-}
-
-fix_template_path() {
-# Usage: have template= set; the function will search some
-# directories if it is not simply found by the path given
-
-if ! [[ -f $template ]]; then
-	for d in $template_dirs; do
-		if [[ -f $d/$template ]]; then
-			template=$d/$template
-			break
-		fi
-	done
-fi
-}
-
-assemble_toc() {
-# Description: function will get:
-#	- files=...		list of files for pandoc to take as input
-#	$tmpdir/head.md		containing metadata from toc.conf
-
-echo "    Reading toc.conf"
-
-head=$tmpdir/head.md
-[[ -f $head ]] && rm $head
-unset files
-while read line; do
-	if [[ $passthrough = 1 ]]; then
-		echo $line >> $head
-		if [[ $line = --- ]] || [[ $line = ... ]]; then
-			echo >> $head
- 			unset passthrough
-		fi
-	elif [[ $ignore = 1 ]]; then
-		if [[ $line = '-->' ]]; then
-			unset ignore
-		fi
-	else
-		if [[ $line = --- ]]; then
-			echo $line >> $head
-			passthrough=1
-		elif [[ $line = '<!--' ]]; then
-			ignore=1
-		elif [[ $line ]]; then
-			files="$files $tocdir/$(echo $line)"
-		fi
-	fi
-done < <(cat toc.conf | sed s/'<!--.*-->'//g | sed s/'#.*'//g | sed s/'%.*'//g)
-[[ -f $head ]] && files="$head $files"
-}
-
-clean_all() {
-	if [[ -d /tmp/mkpdf ]]; then
-		rm -r /tmp/mkpdf && echo "    Successfully removed all temporary files"
-	else
-		echo "    No files left to remove"
-	fi
-}
-
-parse_bib_titleblock() {
-    # Input:  single filename (or multiple, but all but
-    #         the first filename will be ignored)
-    # Output: writes YAML-Block to $tmpdir/meta.md
-
-    field=('title' 'author' 'date')
-    i=0
-
-    # Rules for grep
-    match='^%%%%* *mkpdf *%%%%*$'
-    opt=--ignore-case
-
-    if [[ "$(grep --after-context=1 $opt "$match" $1 | head -2 | grep '% *---')" ]]; then
-        # Treat as yaml-block
-        export parse=0
-        cat $1 | while read line; do
-            if [[ $parse = 2 ]]; then
-                if [[ "$(echo $line | grep '% *---')" ]] || [[ "$(echo $line | grep '% *\.\.\.')" ]]; then
-                    echo --- >> $tmpdir/meta.md
-                    break
-                elif [[ $line ]] && [[ "$(echo $line | grep '^%')" ]]; then
-                    echo "$line" | sed 's/^%[ ]//g' >> $tmpdir/meta.md
-                fi
-            elif [[ $parse = 1 ]] && [[ "$(echo $line | grep '% *---')" ]]; then
-                echo --- > $tmpdir/meta.md
-                parse=2
-            elif [[ $parse = 0 ]] && [[ "$(echo $line | grep $opt "$match")" ]]; then
-                parse=1
-            fi
-        done
-    else
-        # Treat as pandoc-metadata
-        echo --- > $tmpdir/meta.md
-        grep --after-context=3 $opt "$match" $1 |
-            head -4 | tail -3 |
-            sed 's/^[^%].*//g' |
-            sed 's/^% *//g' |
-            while read line; do
-		[[ $line ]] && echo "${field[i]}: $line" >> $tmpdir/meta.md
-                i=$i+1
-            done
-        echo --- >> $tmpdir/meta.md
-    fi
-
-}
+##  Get Variables
+read_input $@
+get_template
 
 
-
-################################################
-##	Processing Input
-################################################
-#
-# Only set variables
-# Do not write to disk in this part
-
-################
-# Get Input
-################
-# set variables [""|1] for all possible options
-# set template=... if supplied from the commandline
-# for help print help and exit
-
-while [[ $1 ]]; do
-	if [[ $1 = -h ]] || [[ $1 = --help ]]; then
-		print_help
-		exit 0
-	elif [[ $1 = --help-toc ]]; then
-		print_help_toc
-		exit 0
-	elif [[ $1 = --help-config ]]; then
-		print_help_config
-		exit 0
-	elif [[ $1 = --example-toc ]]; then
-		print_basic_toc
-		exit 0
-	elif [[ $1 = -t ]] || [[ $1 = --template ]]; then
-		shift
-		template=$1
-	elif [[ $1 = --template=* ]]; then
-		template="$(echo $1 | sed s/--template=//g)"
-	elif [[ $1 = -o ]] || [[ $1 = --output ]]; then
-		shift
-		output=$1
-	elif [[ $1 = --output=* ]]; then
-		output="$(echo $1 | sed s/--output=//g)"
-	elif [[ $1 = -f ]] || [[ $1 = --fresh ]]; then
-		fresh_runs=1
-	elif [[ $1 = -c ]] || [[ $1 = --clean ]]; then
-		clean_all
-		exit 0
-	elif [[ $1 = -d ]] || [[ $1 = --debug ]]; then
-		debug_info=1
-	elif [[ $1 = -p ]] || [[ $1 = --preview ]]; then
-		auto_preview=1
-	elif [[ $1 = --set ]]; then
-		shift
-		let $1
-	else
-		[[ $files ]] &&	files="$files $1" || files="$1"
-	fi
-	shift
-done
-
-################
-# Check availabilities
-################
-
-[[ $(which pandoc-handout) ]] || handout_filter=0
-
-################
-# Get mode
-################
-if ! [[ $files ]]; then
-	if ! [[ $debug_info = 1 ]] && [[ -f toc.conf ]]; then
-		mode=toc
-		tocdir=$PWD
-	else
-		mode=empty
-	fi
-elif [[ $files = '.' ]]; then
-	mode=toc
-	tocdir=$PWD
-elif [[ -d $files ]]; then
-	mode=toc
-	tocdir="$files"
-	unset files
-else
-	mode=file
-fi
-
-################
-# Get title
-################
-if [[ $mode = toc ]]; then
-	if [[ $(echo $tocdir | rev | cut -c1) = / ]]; then
-		title="$(echo $tocdir | rev | cut -d / -f 2 | rev)"
-	else
-		title="$(echo $tocdir | rev | cut -d / -f 1 | rev)"
-	fi
-elif [[ $mode = file ]]; then
-	title="$(echo $files | cut -d ' ' -f 1 | rev | cut -d / -f 1 | rev | cut -d . -f 1)"
-fi
-
-###############
-# Mode empty
-###############
-if [[ $mode = empty ]]; then
-	if [[ $debug_info = 1 ]]; then
-		debug_log_loop
-	else
-		print_help
-	fi
-	exit 0
-fi
-
-
-#################
-# Get template
-#################
-
-# check in toc.conf
-if ! [[ $template ]] && [[ $mode = toc ]]; then
-	template="$(grep '^template: ' $tocdir/toc.conf | head -1 | sed 's/template: //g')"
-fi
-
-# check in files
-if ! [[ $template ]] && [[ $mode = file ]]; then
-	template="$(grep -H '^template: ' $files | head -1 | sed 's/template: //g')"
-	if [[ $(echo $template | grep ^.*:/) ]]; then
-		# Setting for absolute path
-		template=$(echo $template | sed s,/^.*:,/,g)
-	else
-		# Use filename from -H as relpath
-		template=$(echo $template | sed s,^.*:,,g)
-	fi
-fi
-
-# else use default
-! [[ $template ]] && template=$default_template
-
-# fix path
-fix_template_path
-
-# Check if file was found, else try default
-if ! [[ -f $template ]]; then
-	echo "  ERROR: Template $template could not be located!"
-	echo "         Using default template instead"
-	template=$default_template
-	fix_template_path
-	if ! [[ -f $template ]]; then
-		echo "  FATAL: The default template $default_template"
-		echo "         could not be located either!"
-		echo "         Please check your configuration and"
-		echo "         setup to verify it exists."
-		exit 1
-	fi
-fi
-
-
-##################
-# Set tmpdir
-##################
-
-template_short="$(echo $template | rev | cut -d '/' -f 1 | rev)"
-tmpdir="/tmp/mkpdf/$title/$template_short"
-
-#################################################
-##	Executing commands
-#################################################
-
-###############
-# Reset
-###############
+##  Set up tmpdir
+x="$(echo $template | rev | cut -d '/' -f 1 | rev)"
+tmpdir="/tmp/mkpdf/$title/$x"
 ! [[ -d $tmpdir ]] && mkdir -p $tmpdir
-rm -f $tmpdir/mkpdf.log
 rm -f $tmpdir/latexmk.log
 
-###############
-# TOC-Preparations
-###############
 
-# Error or assemble
+##  Write helper files
 if [[ $mode = toc ]]; then
-	if ! [[ -f $tocdir/toc.conf ]]; then
-		echo "  FATAL: $tocdir/toc.conf not found"
-		exit 1
-	fi
-	assemble_toc
+    read_toc meta $tocdir/toc.conf > $tmpdir/head.md
+    files="$tmpdir/head.md $files"
 fi
-
-#################
-# Check files exist
-#################
-
-for f in $files; do
-	if ! [[ -f $f ]]; then
-		echo "  FATAL: file $f not found."
-		exit 1
-	fi
-done
-
-
-#################
-# Check file type
-#################
-
-x="$(echo $files | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)"
-if [[ $x = bib ]] || [[ $x = bibtex ]] || [[ $x = biblatex ]]; then
-	filetype=bib
-else
-	filetype=std
+if [[ $ftype = bib ]]; then
+    parse_bib_titleblock $files > $tmpdir/head.md
 fi
 
 
-#################
-# Set options
-#################
-
-# Global options
-pandoc_options="--file-scope --wrap=preserve --biblatex -o $tmpdir/master.tex"
-
-# Specific options
-if [[ $filetype = bib ]]; then
-    tocdir=$PWD
-    pandoc_options+=" -t latex"
+##  Set options
+pandoc_options+=" -o $tmpdir/master.tex"
+if [[ $ftype = bib ]]; then
+    
+    pandoc_options+=" -t latex $tmpdir/head.md"
     for f in $files; do
-        pandoc_options+=" --bibliography=$f"
+        if ! [[ $(file $f | grep PDF) ]]; then
+            pandoc_options+=" --bibliography=$f"
+        fi
     done
-    parse_bib_titleblock $files
-    files="$tmpdir/meta.md"
-    if [[ -f $HOME/.config/mkpdf/bib.md ]]; then
-        files+=" $HOME/.config/mkpdf/bib.md"
+    if [[ -f $conf/bib.md ]]; then
+        pandoc_options+=" $conf/bib.md"
     else
-        files+=" /usr/share/mkpdf/bib.md"
+        pandoc_options+=" /usr/share/mkpdf/bib.md"
     fi
 else
-    # Get to=beamer or set to=latex
-    # If template contains \documentclass ... {beamer}
-    if [[ $(cat $template | grep '\documentclass' | grep '{beamer}') ]]; then
-        pandoc_options+=" -t beamer"
-    # If template name ends with beamer
-    elif [[ "$(echo $template | rev | cut -d '.' -f 1 | rev )" = beamer ]]; then
-        pandoc_options+=" -t beamer"
-    else
+    pandoc_options+=" $files"
+    if [[ $ttype = latex ]]; then
         pandoc_options+=" -t latex"
+    elif [[ $ttype = beamer ]]; then
+        pandoc_options+=" -t beamer"
     fi
 fi
+
 
 # Be smart about filters
-[[ $to = beamer ]] && handout_filter=0
-
-# Set filters
+[[ $ttype = beamer ]] && handout_filter=0
+[[ $ftype = bib ]] && handout_filter=0
 [[ $handout_filter  = 1 ]] && pandoc_options+=" --filter=pandoc-handout "
 
-###################
-# invoke pandoc
-###################
-echo "    Converting files to latex"
-pandoc $pandoc_options $pandoc_options1 --template=$template $files
 
-# Exit on error
-if ! [[ -f $tmpdir/master.tex ]]; then
-	echo "  FATAL: pandoc failed to generate master.tex"
-	exit 1
-fi
-
-
-##################
-# Furbishtex
-##################
+##  Run stuff
+run_pandoc
 [[ $furbishtex_postprocessor ]] && furbishtex $tmpdir/master.tex
+run_latexmk
 
 
-##################
-# Latexmk
-##################
-
-# autocleanup if -f option was specified
-# resulting in fresh_runs=1
-if [[ $fresh_runs = 1 ]] && [[ -d $tmpdir/latexmk ]]; then
-	echo "    Removing auxiliary files"
-	rm -rf $tmpdir/latexmk
-fi
-
-# Set up latexmk tmpdir
-! [[ -d $tmpdir/latexmk ]] && mkdir "$tmpdir/latexmk"
-
-
-echo "    Running latexmk"
-dest=$PWD
-if [[ $tocdir ]]; then
-	cd $tocdir
-elif [[ $(echo $files | cut -d ' ' -f 1 | grep /) ]]; then
-	cd $(echo $files | cut -d ' ' -f 1 | rev | cut -d / -f 2- | rev)
-fi
-
-unset aborted
-if [[ $debug_info = 1 ]]; then
-	latexmk -pdf -xelatex -outdir=$tmpdir/latexmk $tmpdir/master.tex
-else
-	latexmk -pdf -xelatex -outdir=$tmpdir/latexmk $tmpdir/master.tex &>> $tmpdir/latexmk.log
-fi
-cd "$dest"
-
-# Exit on error
-if ! [[ -f $tmpdir/latexmk/master.pdf ]]; then
-	echo "  FATAL: Latexmk failed to generate pdf file"
-	exit 1
-fi
-
-
-#################
-# Finish up
-#################
-! [[ $output ]] && output="$title.pdf"
+##  Copy output to destination (and maybe preview)
 echo "    Exporting output: $output"
 cp -f $tmpdir/latexmk/master.pdf $output
-
 [[ $auto_preview = 1 ]] && exo-open $output &
 
 exit 0
