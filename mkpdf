@@ -33,7 +33,7 @@ fresh_runs=0
 filters=""
 
 # Get user-specific config
-[[ -f $HOME/.config/mkpdfrc ]] && source $HOME/.config/mkpdfrc
+[[ -f $HOME/.config/mkpdf/config ]] && source $HOME/.config/mkpdf/config
 
 # Internal variables (not configurable)
 unset template
@@ -82,12 +82,12 @@ EOF
 print_help_config() {
    cat <<EOF
 
-Some user-specific defaults can be set in \$HOME/.config/mkpdfrc
-Here is an example mkpdfrc file containing all possible options:
+Some user-specific defaults can be set in \$HOME/.config/mkpdf/config
+Here is an example config file containing all possible options:
 
 ________________________________________________________________
 
-# mkpdfrc - mkpdf configuration file
+# mkpdf configuration file
 
 # template to be used as default and fallback
 default_template=default.latex
