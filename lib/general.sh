@@ -75,7 +75,11 @@ read_input() {
     ################
 
     while [[ $1 ]]; do
-        if [[ $1 = -h ]] || [[ $1 = --help ]]; then
+        # Fallback
+        if [[ "$1" = "--use-pantable" ]]; then
+                pandoc_options+=" --filter=pantable "
+	# Continued
+        elif [[ $1 = -h ]] || [[ $1 = --help ]]; then
             print_help
             exit 0
         elif [[ $1 = --help-toc ]]; then
