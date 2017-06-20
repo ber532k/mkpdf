@@ -127,13 +127,13 @@ read_input() {
     if ! [[ $files ]]; then
             if ! [[ $debug_info = 1 ]] && [[ -f toc.conf ]]; then
                     mode=toc
-                    tocdir=$PWD
+                    tocdir="$PWD"
             else
                     mode=empty
             fi
     elif [[ $files = '.' ]]; then
             mode=toc
-            tocdir=$PWD
+            tocdir="$PWD"
     elif [[ -d $files ]]; then
             mode=toc
             tocdir="$files"
@@ -149,13 +149,13 @@ read_input() {
     ################
 
     if [[ $mode = toc ]]; then
-        if [[ $(echo $tocdir | rev | cut -c1) = / ]]; then
+        if [[ $(echo "$tocdir" | rev | cut -c1) = / ]]; then
             title="$(echo $tocdir | rev | cut -d / -f 2 | rev)"
         else
-            title="$(echo $tocdir | rev | cut -d / -f 1 | rev)"
+            title="$(echo "$tocdir" | rev | cut -d / -f 1 | rev)"
         fi
     elif [[ $mode = file ]]; then
-        title="$(echo $files | cut -d ' ' -f 1 | rev | cut -d / -f 1 | rev | cut -d . -f 1)"
+        title=$(echo "$files" | cut -d ' ' -f 1 | rev | cut -d / -f 1 | rev | cut -d . -f 1)
     fi
 
     ! [[ $output ]] && output="$title.pdf"
@@ -178,7 +178,7 @@ read_input() {
     # Check file type
     #################
 
-    x="$(echo $files | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)"
+    x=$(echo "$files" | cut -d ' ' -f1 | rev | cut -d '.' -f1 | rev)
     if [[ $x = bib ]] || [[ $x = bibtex ]] || [[ $x = biblatex ]]; then
             ftype=bib
     else
@@ -192,22 +192,25 @@ read_input() {
 
     if [[ $mode = toc ]]; then
         reldir="$tocdir"
-    elif [[ $mode = std ]] && [[ $(echo $files | cut -d ' ' -f 1 | grep /) ]]; then
-        reldir="$(echo $files | cut -d ' ' -f 1 | rev | cut -d / -f 2- | rev)"
+    elif [[ $mode = std ]] && [[ $(echo "$files" | cut -d ' ' -f 1 | grep /) ]]; then
+        reldir=$(echo "$files" | cut -d ' ' -f 1 | rev | cut -d / -f 2- | rev)
     else
-        reldir=$PWD
+        reldir="$PWD"
     fi
 }
 
 
 read_toc() {
     # Input:  1:  runmode (files, meta)
-    #         2:  filename (toc.conf or markdown)
+    #        2-:  filename (toc.conf or markdown)
     # Output:   string (of files or YAML-metadata)
     #
     # Note:     Make sure tocdir is sed correctly
 
-    [[ $1 = meta ]] && echo ---
+    [[ $1 = meta ]] && runmode_here=meta
+    [[ $1 = files ]] && runmode_here=files
+    shift
+    [[ $runmode_here = meta ]] && echo ---
 
     while read line; do
         if [[ $passthrough = 1 ]]; then
@@ -215,7 +218,7 @@ read_toc() {
                  unset passthrough
             else
                 # This line contains metadata
-                [[ $1 = meta ]] && echo $line
+                [[ $runmode_here = meta ]] && echo $line
             fi
         elif [[ $ignore = 1 ]]; then
             if [[ $line = '-->' ]]; then
@@ -228,12 +231,13 @@ read_toc() {
                 ignore=1
             elif [[ $line ]]; then
                 # The line contains a filename
-                [[ $1 = files ]] && echo -n "$tocdir/$line "
+                [[ $runmode_here = files ]] && echo -n "$line"
             fi
         fi
-    done < <(cat "$2" | sed s/'<!--.*-->'//g | sed s/'#.*'//g | sed s/'%.*'//g)
+    done < <(cat "$(echo $@)" | sed s/'<!--.*-->'//g | sed s/'#.*'//g | sed s/'%.*'//g)
 
-    [[ $1 = meta ]] && echo ---
+    [[ $runmode_here = meta ]] && echo ---
+    unset runmode_here
 }
 
 
@@ -255,7 +259,7 @@ parse_bib_titleblock() {
         if [[ "$(grep --after-context=1 $opt "$match" $f | head -2 | grep '% *---')" ]]; then
             # Treat as yaml-block
             export parse=0
-            cat $f | while read line; do
+            cat "$f" | while read line; do
                 if [[ $parse = 2 ]]; then
                     if [[ "$(echo $line | grep '% *---')" ]] || [[ "$(echo $line | grep '% *\.\.\.')" ]]; then
                         break
@@ -296,7 +300,7 @@ get_template() {
 
     # look at toc.conf
     if ! [[ $template ]] && [[ $mode = toc ]]; then
-        template="$(read_toc meta $tocdir/toc.conf | grep 'template: ' | head -1 | sed 's/template: //g')"
+        template=$(read_toc meta "$tocdir/toc.conf" | grep 'template: ' | head -1 | sed 's/template: //g')
     fi
 
     # look at files
@@ -310,7 +314,7 @@ get_template() {
     fi
 
     # else use default
-    ! [[ $template ]] && template=$default_template
+    ! [[ $template ]] && template="$default_template"
 
 
     ######################
@@ -319,8 +323,8 @@ get_template() {
     fix_template_path() {
         if ! [[ -f $template ]]; then
             for d in $template_dirs; do
-                if [[ -f $d/$template ]]; then
-                    template=$d/$template
+                if [[ -f "$d/$template" ]]; then
+                    template="$d/$template"
                     break
                 fi
             done
@@ -351,9 +355,9 @@ get_template() {
     # Get template type
     ######################
 
-    if [[ $(cat $template | grep '\documentclass' | grep '{beamer}') ]]; then
+    if [[ $(cat "$template" | grep '\documentclass' | grep '{beamer}') ]]; then
         ttype=beamer
-    elif [[ "$(echo $template | rev | cut -d '.' -f 1 | rev )" = beamer ]]; then
+    elif [[ $(echo "$template" | rev | cut -d '.' -f 1 | rev ) = beamer ]]; then
         ttype=beamer
     else
         ttype=latex

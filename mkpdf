@@ -46,11 +46,11 @@ rm -f $tmpdir/latexmk.log
 
 ##  Write helper files
 if [[ $mode = toc ]]; then
-    read_toc meta $tocdir/toc.conf > $tmpdir/head.md
+    read_toc meta "$tocdir/toc.conf" > "$tmpdir/head.md"
     files="$tmpdir/head.md $files"
 fi
 if [[ $ftype = bib ]]; then
-    parse_bib_titleblock $files > $tmpdir/head.md
+    parse_bib_titleblock "$files" > $tmpdir/head.md
 fi
 
 
