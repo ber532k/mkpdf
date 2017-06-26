@@ -231,7 +231,7 @@ read_toc() {
                 ignore=1
             elif [[ $line ]]; then
                 # The line contains a filename
-                [[ $runmode_here = files ]] && echo -n "$line"
+                [[ $runmode_here = files ]] && echo -n "$line "
             fi
         fi
     done < <(cat "$(echo $@)" | sed s/'<!--.*-->'//g | sed s/'#.*'//g | sed s/'%.*'//g)
