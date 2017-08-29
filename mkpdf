@@ -80,6 +80,7 @@ fi
 
 
 # Be smart about filters
+[[ $(which pandoc-crossref) ]] && pandoc_options+=" --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True "
 [[ $ttype = beamer ]] && handout_filter=0
 [[ $ftype = bib ]] && handout_filter=0
 [[ $handout_filter  = 1 ]] && pandoc_options+=" --filter=$bin/pandoc-handout "
