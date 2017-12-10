@@ -1,0 +1,126 @@
+#!/bin/dash
+
+####################################
+##	License
+####################################
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+####################################
+##	Mkpdf Script
+####################################
+
+print_help() {
+cat <<EOF
+Usage: mkpdf [options] <directory>
+   Or: mkpdf [options] [files]
+
+Options:
+  -c  --clean           Remove all temporary files and exit
+  -d  --debug           Do not hide latexmk's output
+  -o  --output          Specify a name for the output file
+  -p  --preview         Open pdf once generated
+  -t  --template        Specify a template to use with pandoc
+  -h  --help            Print this help message and exit
+
+Pandoc-Options:
+  -M  --metadata        These options will be passed on to pandoc.
+                        Please refer to pandoc's documentation for
+                        further information on what they do.
+
+Specifying templates:
+      If no template is set from the command line, mkpdf will check
+      either toc.conf or the input files if any of them specify a
+      variable like 'template: default.latex'. While this is also
+      a usual (though probably not processed) variable for pandoc,
+      mkpdf will use it to determine what template to use.
+
+EOF
+}
+
+clean_all() {
+    if test -d /tmp/mkpdf; then
+        rm -r /tmp/mkpdf && echo "    Successfully removed all temporary files"
+    else
+        echo "    No files left to remove"
+    fi
+}
+
+first_char() {
+    echo $@ | cut -c 1
+}
+
+last_char() {
+    echo $@ | rev | cut -c 1
+}
+
+parse_commandline() {
+    preprocess_commandline() {
+        longopts=help,clean,debug,output:,preview,template:,metadata:
+        shortopts=hcdo:pt:M:
+        getopt -o $shortopts -l $longopts -- "$@"
+    }
+    interpret_commandline() {
+        while true; do
+            case "$1" in
+                # Proper Options
+                -h | --help )
+                    print_help
+                    exit 0  ;;
+                -c | --clean )
+                    clean_all
+                    shift   ;;
+                -d | --debug )
+                    debug=1
+                    shift   ;;
+                -o | --output )
+                    output="'$2'"
+                    shift 2 ;;
+                -p | --preview )
+                    preview=1
+                    shift   ;;
+                -t | --template )
+                    template="'$2'"
+                    shift 2 ;;
+                # Pandoc-Options
+                -M | --metadata )
+                    PANDOC_OPTIONS="$PANDOC_OPTIONS $1 '$2'"
+                    shift 2 ;;
+                # Concluding remarks
+                -- )
+                    shift; break;;
+                * )
+                    echo Errors occured while parsing commandline options
+                    echo Remaining arguments: $@
+                    exit 1  ;;
+            esac
+        done
+        while test $# -gt 0; do             # Treat remaining args as filenames
+            filenames="$filenames '$1'"
+            shift
+        done
+    }
+    # eval to have args accessible as $1, $2 ...
+    eval interpret_commandline $(preprocess_commandline "$@")
+}
+parse_commandline "$@"
+
+echo filenames = $filenames
+echo template = $template
+echo preview = $preview
+echo debug = $debug
+echo output = $output
+echo PANDOC_OPTIONS = $PANDOC_OPTIONS
+
+
+#eval pandoc -t latex --template="$template" $filenames
