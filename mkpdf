@@ -95,6 +95,6 @@ run_latexmk
 ##  Copy output to destination (and maybe preview)
 echo "    Exporting output: $output"
 cp -f $tmpdir/latexmk/master.pdf $output
-[[ $auto_preview = 1 ]] && exo-open $output &
+[[ $auto_preview = 1 ]] && nohup exo-open $output &>/dev/null
 
 exit 0
