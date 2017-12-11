@@ -1,3 +1,5 @@
 test_ref
 toctest
 *.swp
+mkpdf_all
+mkpdf_all.deb
