@@ -9,37 +9,38 @@ written in pandoc's markdown using a specified template.
 
 ### Arch Linux
 
-There is a package in the AUR, so use something like ``pacaur -S mkpdf``
+There is a package in the AUR, so use something like `pacaur -S mkpdf`
+
+### Debian
+
+Run `make deb` to create a package for debian. Or just download the
+already-built package from the releases page.
 
 ### Manual Installation
 
-Add the following files to your PATH and make sure they are executable:
+Since the functionality is split up into multiple files that are sourced from
+the main script, Installing it manually is not too straight forward at the
+moment. You can run `sudo make install` to set everything up or just take a
+peek into the makefile to see how it is done currently.
 
-- mkpdf
-- furbishtex (optional)
-    * for furbishtex to do something you will also want to
-      move ``default.sed`` to ``/usr/share/furbishtex`` or
-      at least to ``$HOME/.furbishtex`` for a user-specific
-      installation
-
-Or just run ``sudo make install``, but make sure the makefile will work
-with your distribution. Drop me a message if not so.
-
-If furbishtex is found in your PATH and executable it will be called
-before running latexmk. See ``furbishtex -h`` for further explanation.
+I realize that this is anything but ideal and will try to reunite all the
+components into a single shell script with some future release, so that
+installing it will again be a simple matter of making the `mkpdf` executable
+available in your `PATH`.
 
 ## Dependencies
 
 Of course this program depends on
 
 - pandoc
+- latexmk
 - texlive (or probably even some other latex distribution)
 
 Also some basic command line utils are used, but these should be included
 in every GNU/Linux system by default. Please drop me a message, if this is
 not the case.
 
-## Usage (released version)
+## Usage (v0.2.1)
 
 ```
 Usage: mkpdf [options] <directory>
@@ -53,10 +54,18 @@ Options:
   -o  --output          Specify a name for the output file
   -p  --preview         Open pdf once generated
   -t  --template        Specify a template to use with pandoc
+      --set             Set a config-option from command line
   -h  --help            Print this help and exit
       --help-toc        Print info on how to use toc-mode
-      --basic-toc       Print an example of a basic toc.conf
-      --advanced-toc    Print an advanced example for toc.conf
+      --help-config     Print info on possible config options
+      --example-toc     Print an example of a basic toc.conf
+
+Specifying templates:
+      If no template is set from the command line, mkpdf will check
+      either toc.conf or the input files if any of them specify a
+      variable like 'template: default.latex'. While this is also
+      a usual (though probably not processed) variable for pandoc,
+      mkpdf will use it to determine what template to use.
 
 
 mkpdf toc-mode:
@@ -72,9 +81,6 @@ mkpdf toc-mode:
         * Latex-style comments starting with %
         * HTML-style comments (either single- or multi-
           line)
-    - A template may be specified in any comment
-      containing template="FILE". This comment should
-      not contain anything else.
     - YAML-style headers will be passed on to pandoc
       and thus used directly in creating the output.
     - The remaining lines will be interpreted as paths
