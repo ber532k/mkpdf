@@ -141,7 +141,7 @@ parse_commandline() {
                     preview=1
                     shift   ;;
                 -t | --template )
-                    template="'$2'"
+                    template="$template '$2'"
                     shift 2 ;;
                 # Pandoc-Options
                 -M | --metadata )
@@ -218,6 +218,10 @@ read_toc() {
     test $1 = meta && IFS="$OLDIFS"
 }
 
+get_first_arg() {
+    echo "$1"
+}
+
 ####################################
 ##	Main Part
 ####################################
@@ -234,6 +238,7 @@ if test $mode = dir; then
     fi
 fi
 
+template="'$(eval get_first_arg "$template")'"
 
 # Remaining:
 #   - set up tempdir
