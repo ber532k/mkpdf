@@ -181,12 +181,41 @@ parse_commandline() {
     eval interpret_commandline $(preprocess_commandline "$@")
 }
 
-first_char() {
-    echo $@ | cut -c 1
-}
-
-last_char() {
-    echo $@ | rev | cut -c 1
+read_toc() {
+    # Input:  $1:   runmode (files, meta)
+    #         $2:   toc-filename
+    # Output:   string (of files or YAML-metadata)
+    test $1 = meta && echo ---
+    if test $1 = meta; then
+        cat_toc() {
+            cat "$1"    # Do not strip comments
+        }
+        OLDIFS="$IFS"
+        IFS=""      # Make sure whitespace is preserved by read
+    else
+        cat_toc() {
+            cat "$1" | sed 's/#.*//g'   # Strip comments
+        }
+    fi
+    cat_toc "$2" | while read line; do
+        if test "$yaml_block" = 1; then
+            if test "$line" = "---" || test "$line" = "..."; then
+                 unset yaml_block
+            else
+                # This line contains metadata
+                test $1 = meta && echo "$line"
+            fi
+        else
+            if test "$line" = "---"; then
+                yaml_block=1
+            elif test "$line"; then
+                # The line contains a filename
+                test $1 = files && echo -n "'$line' "
+            fi
+        fi
+    done
+    test $1 = meta && echo ---
+    test $1 = meta && IFS="$OLDIFS"
 }
 
 ####################################
@@ -194,30 +223,33 @@ last_char() {
 ####################################
 
 parse_commandline "$@"
+if test $mode = dir; then
+    if test -f "$tocdir/toc.conf"; then
+        origin="$PWD"
+        cd "$tocdir"
+        eval check_filenames "$(read_toc 'files' 'toc.conf')"
+    else
+        echo There is no toc.conf in $tocdir >&2
+        exit 1
+    fi
+fi
 
+
+# Remaining:
+#   - set up tempdir
+#   - extract metadata from toc.conf (if in dir mode)
+#   - get template if not already set (use pandoc to look for template metafield)
+#       - maybe fallback to custom default
+#       - have pandoc print the template to verify it exists
+#   - run pandoc
+#   - run latexmk
+#   - copy output to $origin/$output (or just $output in file mode)
 
 ####################################
 ##	Testing Stuff
 ####################################
 
 echo tocdir = $tocdir
-if test -f "$tocdir/toc.conf"; then
-    # Later do the following:
-    #   - save origin
-    #   - cd to tocdir
-    #       - get filenames
-    #       - run pandoc and latexmk
-    #   - copy output to $origin/$output
-    echo toc.conf found
-    origin="$PWD"
-    cd "$tocdir"
-    echo tocdir is $PWD
-    cd "$origin"
-    echo origin was $PWD
-#    check_filenames $(cat $tocdir/toc.conf)     # something about quoting: whitespace breaks stuff
-else
-    eval echo $tocdir/toc.conf does not exist >&2
-fi
 echo filenames = $filenames
 echo codename = $codename
 echo template = $template
@@ -225,6 +257,11 @@ echo preview = $preview
 echo debug = $debug
 echo output = $output
 echo PANDOC_OPTIONS = $PANDOC_OPTIONS
+if test $mode = dir; then
+    echo
+    echo Metadata from toc:
+    read_toc 'meta' 'toc.conf'
+fi
 
 
 #eval pandoc -t latex --template="$template" $filenames
