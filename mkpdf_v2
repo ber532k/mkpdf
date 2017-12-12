@@ -17,7 +17,7 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ####################################
-##	Mkpdf Script
+##	Major Functions
 ####################################
 
 print_help() {
@@ -63,14 +63,6 @@ debug_log_loop() {
     echo debugging coming soon ...
 }
 
-first_char() {
-    echo $@ | cut -c 1
-}
-
-last_char() {
-    echo $@ | rev | cut -c 1
-}
-
 check_filenames() {
     # Input:    list of filenames as $1, $2, ...
     # Output:   None, but files will be appended to $filenames if they exist
@@ -86,6 +78,9 @@ check_filenames() {
 }
 
 parse_commandline() {
+    get_codename() {
+        codename="$(echo $1 | rev | cut -d '/' -f 1 | rev | cut -d '.' -f 1)"
+    }
     preprocess_commandline() {
         longopts=help,clean,debug,output:,preview,template:,metadata:
         shortopts=hcdo:pt:M:
@@ -147,9 +142,11 @@ parse_commandline() {
                 echo mkpdf can only take one argument in directory mode >&2
                 exit 1
             fi
+            get_codename "$(realpath "$tocdir")"
         elif test -f "$1"; then
             mode=files
             check_filenames "$@"
+            eval get_codename $filenames
         else
             echo No such file or directory: $1 >&2
             exit 1
@@ -158,7 +155,25 @@ parse_commandline() {
     # eval to have args accessible as $1, $2 ...
     eval interpret_commandline $(preprocess_commandline "$@")
 }
+
+first_char() {
+    echo $@ | cut -c 1
+}
+
+last_char() {
+    echo $@ | rev | cut -c 1
+}
+
+####################################
+##	Main Part
+####################################
+
 parse_commandline "$@"
+
+
+####################################
+##	Testing Stuff
+####################################
 
 echo tocdir = $tocdir
 if test -f "$tocdir/toc.conf"; then
@@ -174,11 +189,12 @@ if test -f "$tocdir/toc.conf"; then
     echo tocdir is $PWD
     cd "$origin"
     echo origin was $PWD
-    check_filenames $(cat $tocdir/toc.conf)     # something about quoting: whitespace breaks stuff
+#    check_filenames $(cat $tocdir/toc.conf)     # something about quoting: whitespace breaks stuff
 else
     eval echo $tocdir/toc.conf does not exist >&2
 fi
 echo filenames = $filenames
+echo codename = $codename
 echo template = $template
 echo preview = $preview
 echo debug = $debug
