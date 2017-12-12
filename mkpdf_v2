@@ -26,7 +26,10 @@ Usage: mkpdf [options] <directory>
    Or: mkpdf [options] [files]
 
 Options:
-  -c  --clean           Remove all temporary files and exit
+  -c  --clean           If invoked as the only option, remove all
+                        temporary files. If invoked among other
+                        options, remove relevant temporary files
+                        for a specific run.
   -d  --debug           Do not hide latexmk's output
   -o  --output          Specify a name for the output file
   -p  --preview         Open pdf once generated
@@ -56,12 +59,30 @@ clean_all() {
     fi
 }
 
+debug_log_loop() {
+    echo debugging coming soon ...
+}
+
 first_char() {
     echo $@ | cut -c 1
 }
 
 last_char() {
     echo $@ | rev | cut -c 1
+}
+
+check_filenames() {
+    # Input:    list of filenames as $1, $2, ...
+    # Output:   None, but files will be appended to $filenames if they exist
+    while test $# -gt 0; do
+        if test -f "$1"; then
+            filenames="$filenames '$1'"
+            shift
+        else
+            echo File not found: $1 >&2
+            exit 1
+        fi
+    done
 }
 
 parse_commandline() {
@@ -71,14 +92,24 @@ parse_commandline() {
         getopt -o $shortopts -l $longopts -- "$@"
     }
     interpret_commandline() {
-        while true; do
+        if test $# = 2; then        # Partial runs for specific single options
+            case "$1" in
+                -c | --clean )
+                    clean_all
+                    exit 0  ;;
+                -d | --debug )
+                    debug_log_loop
+                    exit 0  ;;
+            esac
+        fi
+        while true; do              # Main options
             case "$1" in
                 # Proper Options
                 -h | --help )
                     print_help
                     exit 0  ;;
                 -c | --clean )
-                    clean_all
+                    clean=1
                     shift   ;;
                 -d | --debug )
                     debug=1
@@ -105,16 +136,48 @@ parse_commandline() {
                     exit 1  ;;
             esac
         done
-        while test $# -gt 0; do             # Treat remaining args as filenames
-            filenames="$filenames '$1'"
+        if test $# = 0; then                    # exit if nothing else to do
+            echo Missing argument: No files or directory specified >&2
+            exit 1
+        elif test -d "$1"; then                 # Else Parse dir- or filenames
+            mode=dir
+            tocdir="$1"
             shift
-        done
+            if test $# -gt 0; then
+                echo mkpdf can only take one argument in directory mode >&2
+                exit 1
+            fi
+        elif test -f "$1"; then
+            mode=files
+            check_filenames "$@"
+        else
+            echo No such file or directory: $1 >&2
+            exit 1
+        fi
     }
     # eval to have args accessible as $1, $2 ...
     eval interpret_commandline $(preprocess_commandline "$@")
 }
 parse_commandline "$@"
 
+echo tocdir = $tocdir
+if test -f "$tocdir/toc.conf"; then
+    # Later do the following:
+    #   - save origin
+    #   - cd to tocdir
+    #       - get filenames
+    #       - run pandoc and latexmk
+    #   - copy output to $origin/$output
+    echo toc.conf found
+    origin="$PWD"
+    cd "$tocdir"
+    echo tocdir is $PWD
+    cd "$origin"
+    echo origin was $PWD
+    check_filenames $(cat $tocdir/toc.conf)     # something about quoting: whitespace breaks stuff
+else
+    eval echo $tocdir/toc.conf does not exist >&2
+fi
 echo filenames = $filenames
 echo template = $template
 echo preview = $preview
