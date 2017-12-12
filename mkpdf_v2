@@ -103,7 +103,8 @@ check_filenames() {
 
 parse_commandline() {
     get_codename() {
-        codename="$(echo $1 | rev | cut -d '/' -f 1 | rev | cut -d '.' -f 1)"
+        codename="$(echo $1 | rev | cut -d '/' -f 1 | rev | cut -d '.' -f 1 |
+                        sed 's/^ *//g' | sed 's/ *$//g' | tr ' ' '_')"
     }
     preprocess_commandline() {
         longopts=help,clean,debug,output:,preview,template:,metadata:
