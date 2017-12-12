@@ -60,7 +60,31 @@ clean_all() {
 }
 
 debug_log_loop() {
-    echo debugging coming soon ...
+    while true; do
+        find /tmp/mkpdf | grep latexmk.log | while read logfile; do
+        if test "$(cat $logfile | tail -1 | grep 'Latexmk: All targets' | grep 'are up-to-date')"; then
+            echo "$logfile"
+            echo "    is clean (i. e. latexmk finished ok)"
+            echo
+        else
+            cat $logfile
+            echo
+            echo -------------------------------
+            echo Above is the content of $logfile
+            echo -------------------------------
+            read -p "Hit Enter to search for further errors" x </dev/tty
+            echo
+            echo
+            echo
+        fi
+        done
+        echo
+        echo     ______________________
+        read -p "Hit Enter to run again" x </dev/tty
+        echo
+        echo
+        echo
+    done
 }
 
 check_filenames() {
