@@ -238,7 +238,7 @@ if test $mode = dir; then
     fi
 fi
 
-template="'$(eval get_first_arg "$template")'"
+test "$template" && template="'$(eval get_first_arg "$template")'"
 
 # Remaining:
 #   - set up tempdir
