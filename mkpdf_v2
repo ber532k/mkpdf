@@ -23,7 +23,7 @@
 tmpdir=/tmp/mkpdf
 pandoc_options='--file-scope'
 if test "$(which pandoc-crossref 2>/dev/null)"; then
-    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=true"
+    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
 fi
 
 postprocessing() {
