@@ -20,8 +20,10 @@
 ##  (Default) Configuration
 ####################################
 
-tmpdir=/tmp/mkpdf/v2
+tmpdir=/tmp/mkpdf
+pandoc_options='--file-scope'
 
+# Source user-specific configuration
 test -f "$HOME/.config/mkpdfrc" && . "$HOME/.config/mkpdfrc"
 
 ####################################
@@ -61,9 +63,9 @@ EOF
 
 clean_all() {
     if test -d "$tmpdir"; then
-        rm -r "$tmpdir" && echo "    Successfully removed all temporary files"
+        rm -r "$tmpdir" && echo "Successfully removed all temporary files"
     else
-        echo "    No files left to remove"
+        echo "No files left to remove"
     fi
 }
 
@@ -158,7 +160,7 @@ parse_commandline() {
                     shift 2 ;;
                 # Pandoc-Options
                 -M | --metadata )
-                    PANDOC_OPTIONS="$PANDOC_OPTIONS $1 '$2'"
+                    pandoc_options="$pandoc_options $1 '$2'"
                     shift 2 ;;
                 # Concluding remarks
                 -- )
@@ -274,6 +276,7 @@ if test $mode = dir; then   # Extract Metadata from toc.conf
     filenames="'$tmpdir/head.md' $filenames"
 fi
 
+echo Converting files to latex
 # Get template if missing
 if ! test "$template"; then     # Check metadata
     template="$(eval get_metadata template $filenames)"
@@ -287,15 +290,15 @@ if test "$template"; then       # Ensure max one template is set
 else                            # Ensure at least one template is set
     template="default.latex"
 fi
-
+# Set up subdir if missing
+test -d "$tmpdir/$template" || mkdir -p "$tmpdir/$template"
 # Run pandoc
-echo Converting files to latex
-master_tex="$tmpdir/$template.master.tex"
-eval pandoc -t latex --template="$template" $PANDOC_OPTIONS $filenames \
+master_tex="$tmpdir/$template/master.tex"
+eval pandoc -t latex --template="$template" $pandoc_options $filenames \
         -o "$master_tex" || exit 1
 
-# Set up latexmk-specific tmpdir
-tmpdir_mk="$tmpdir/$template.latexmk"
+# Set up / clean latexmk-specific tmpdir
+tmpdir_mk="$tmpdir/$template/latexmk"
 if test "$clean" && test -d "$tmpdir_mk"; then
     echo Removing auxiliary files
     rm -rf "$tmpdir_mk"
@@ -306,11 +309,11 @@ echo Running latexmk
 if test "$debug"; then
     latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex"
 else
-    latexmk_log="$tmpdir/$template.latexmk.log"
-    latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>"$latexmk_log"
+    latexmk_log="$tmpdir/$template/latexmk.log"
+    latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>&1
 fi
 # Exit on Error
-if ! test -f "$tmpdir_mk/$template.master.pdf"; then
+if ! test -f "$tmpdir_mk/master.pdf"; then
     echo Latexmk failed to generate output >&2
     exit 1
 fi
@@ -318,34 +321,6 @@ fi
 # Copy output to destination (and maybe preview)
 test "$output" || output="$codename.pdf"
 echo Exporting output: $output
-test "$origin" && cd "$origin"
-cp -f "$tmpdir_mk/$template.master.pdf" "$output"
-test "$preview" && nohup exo-open "$output" >/dev/null 2>/dev/null
-
-# Remaining:
-#   - set up tmpdir
-#   - extract metadata from toc.conf (if in dir mode)
-#   - get template if not already set (use pandoc to look for template metafield)
-#       - maybe fallback to custom default
-#       - have pandoc print the template to verify it exists
-#   - run pandoc
-#   - run latexmk
-#   - copy output to $origin/$output (or just $output in file mode)
-
-####################################
-##	Testing Stuff
-####################################
-
-echo tocdir = $tocdir
-echo filenames = $filenames
-echo codename = $codename
-echo template = $template
-echo preview = $preview
-echo debug = $debug
-echo output = $output
-echo PANDOC_OPTIONS = $PANDOC_OPTIONS
-if test $mode = dir; then
-    echo
-    echo Metadata from toc:
-    read_toc 'meta' 'toc.conf'
-fi
+test $mode = dir && cd "$origin"
+cp -f "$tmpdir_mk/master.pdf" "$output"
+test "$preview" && nohup exo-open "$output" >/dev/null 2>&1
