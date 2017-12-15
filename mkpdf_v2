@@ -156,7 +156,7 @@ parse_commandline() {
                     debug=1
                     shift   ;;
                 -o | --output )
-                    output="'$2'"
+                    output="$output '$2'"
                     shift 2 ;;
                 -p | --preview )
                     preview=1
@@ -347,7 +347,11 @@ if ! test -f "$tmpdir_mk/master.pdf"; then
 fi
 
 # Copy output to destination (and maybe preview)
-test "$output" || output="$codename.pdf"
+if test "$output"; then
+    output="$(eval get_first_arg $output)"
+else
+    output="$codename.pdf"
+fi
 echo Exporting output: $output
 test $mode = dir && cd "$origin"
 cp -f "$tmpdir_mk/master.pdf" "$output"
