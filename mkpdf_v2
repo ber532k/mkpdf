@@ -17,6 +17,14 @@
 #  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ####################################
+##  (Default) Configuration
+####################################
+
+tmpdir=/tmp/mkpdf/v2
+
+test -f "$HOME/.config/mkpdfrc" && . "$HOME/.config/mkpdfrc"
+
+####################################
 ##	Major Functions
 ####################################
 
@@ -52,8 +60,8 @@ EOF
 }
 
 clean_all() {
-    if test -d /tmp/mkpdf; then
-        rm -r /tmp/mkpdf && echo "    Successfully removed all temporary files"
+    if test -d "$tmpdir"; then
+        rm -r "$tmpdir" && echo "    Successfully removed all temporary files"
     else
         echo "    No files left to remove"
     fi
@@ -61,7 +69,7 @@ clean_all() {
 
 debug_log_loop() {
     while true; do
-        find /tmp/mkpdf | grep latexmk.log | while read logfile; do
+        find "$tmpdir" | grep latexmk.log | while read logfile; do
         if test "$(cat $logfile | tail -1 | grep 'Latexmk: All targets' | grep 'are up-to-date')"; then
             echo "$logfile"
             echo "    is clean (i. e. latexmk finished ok)"
@@ -222,12 +230,26 @@ get_first_arg() {
     echo "$1"
 }
 
+get_metadata() {
+    # Input:    $1: Variable name (e. g. lang)
+    #         Rest: Files to check
+    # Output:       variable(s) in a form eval can understand
+    if ! test "$tmpdir" || ! test -d "$tmpdir"; then
+        echo Internal Error: tmpdir must be set up before calling get_metadata >&2
+        exit 1
+    fi
+    # $if(var)$'$for(var)$$var$$sep$' '$endfor$'$endif$
+    echo "\$if($1)\$"\'"\$for($1)\$\$$1\$\$sep\$"\'" "\'"\$endfor\$"\'"\$endif\$" > "$tmpdir/get_metadata.plain"
+    shift
+    pandoc -t plain --template "$tmpdir/get_metadata.plain" $@
+}
+
 ####################################
 ##	Main Part
 ####################################
 
-parse_commandline "$@"
-if test $mode = dir; then
+parse_commandline "$@"      # Self-explaining
+if test $mode = dir; then   # Find toc and read files (dir mode only)
     if test -f "$tocdir/toc.conf"; then
         origin="$PWD"
         cd "$tocdir"
@@ -238,10 +260,35 @@ if test $mode = dir; then
     fi
 fi
 
-test "$template" && template="'$(eval get_first_arg "$template")'"
+# Set up tmpdir
+tmpdir="$tmpdir/$codename"
+mkdir -p "$tmpdir"
+
+if test $mode = dir; then   # Extract Metadata from toc.conf
+    read_toc 'meta' 'toc.conf' > "$tmpdir/head.md"
+    filenames="'$tmpdir/head.md' $filenames"
+fi
+
+# Get template if missing
+if ! test "$template"; then     # Check metadata
+    template="$(eval get_metadata template $filenames)"
+fi
+if ! test "$template"; then     # Check defaults
+    test "$default_template" && template="'$default_template'"
+fi
+# Make sure template is set
+if test "$template"; then       # Ensure max one template is set
+    template="$(eval get_first_arg $template)"
+else                            # Ensure at least one template is set
+    template="default.latex"
+fi
+
+# Run pandoc
+eval pandoc -t latex --template="$template" $PANDOC_OPTIONS $filenames \
+        -o "$tmpdir/$template.master.tex" || exit 1
 
 # Remaining:
-#   - set up tempdir
+#   - set up tmpdir
 #   - extract metadata from toc.conf (if in dir mode)
 #   - get template if not already set (use pandoc to look for template metafield)
 #       - maybe fallback to custom default
@@ -267,6 +314,3 @@ if test $mode = dir; then
     echo Metadata from toc:
     read_toc 'meta' 'toc.conf'
 fi
-
-
-#eval pandoc -t latex --template="$template" $filenames
