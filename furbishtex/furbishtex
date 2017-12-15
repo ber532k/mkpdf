@@ -18,8 +18,8 @@ fi
 
 files="$@"
 
-if ls /usr/lib/mkpdf/furbishtex/* &>/dev/null; then
-	conf=($(ls /usr/lib/mkpdf/furbishtex/*))
+if ls /usr/lib/furbishtex/* &>/dev/null; then
+	conf=($(ls /usr/lib/furbishtex/*))
 fi
 if ls $HOME/.furbishtex/* &>/dev/null; then
 	conf=($conf $(ls $HOME/.furbishtex/*))
