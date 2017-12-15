@@ -243,6 +243,10 @@ get_first_arg() {
     echo "$1"
 }
 
+get_extension() {
+    echo "$1" | rev | cut -d '.' -f 1 | rev
+}
+
 get_metadata() {
     # Input:    $1: Variable name (e. g. lang)
     #         Rest: Files to check
@@ -300,7 +304,12 @@ fi
 test -d "$tmpdir/$template" || mkdir -p "$tmpdir/$template"
 # Run pandoc
 master_tex="$tmpdir/$template/master.tex"
-eval pandoc -t latex --template="$template" $pandoc_options $filenames \
+if test "$(get_extension $template)" = "beamer"; then
+    pandoc_options="-t beamer $pandoc_options"
+else
+    pandoc_options="-t latex $pandoc_options"
+fi
+eval pandoc --template="$template" $pandoc_options $filenames \
         -o "$master_tex" || exit 1
 
 # Run postprocessing (if any)
