@@ -21,7 +21,7 @@
 ####################################
 
 tmpdir=/tmp/mkpdf
-pandoc_options='--file-scope'
+pandoc_options='--file-scope --biblatex'
 if test "$(which pandoc-crossref 2>/dev/null)"; then
     pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
 fi
@@ -177,10 +177,16 @@ parse_commandline() {
                     exit 1  ;;
             esac
         done
-        if test $# = 0; then                    # exit if nothing else to do
-            echo Missing argument: No files or directory specified >&2
-            exit 1
-        elif test -d "$1"; then                 # Else Parse dir- or filenames
+        if test $# = 0; then            # Defaults if no filename is specified
+            if test -f "toc.conf"; then
+                mode=dir
+                tocdir='.'
+                get_codename "$(realpath "$tocdir")"
+            else
+                echo Missing argument: No files or directory specified >&2
+                exit 1
+            fi
+        elif test -d "$1"; then         # Else Parse dir- or filenames
             mode=dir
             tocdir="$1"
             shift
@@ -258,7 +264,7 @@ get_metadata() {
     # $if(var)$'$for(var)$$var$$sep$' '$endfor$'$endif$
     echo "\$if($1)\$"\'"\$for($1)\$\$$1\$\$sep\$"\'" "\'"\$endfor\$"\'"\$endif\$" > "$tmpdir/get_metadata.plain"
     shift
-    pandoc -t plain --template "$tmpdir/get_metadata.plain" $@
+    pandoc --file-scope -t plain --template "$tmpdir/get_metadata.plain" $@
 }
 
 ####################################
@@ -309,6 +315,7 @@ if test "$(get_extension $template)" = "beamer"; then
 else
     pandoc_options="-t latex $pandoc_options"
 fi
+echo "--template=\"$template\" $pandoc_options" > $tmpdir/$template/pandoc.options
 eval pandoc --template="$template" $pandoc_options $filenames \
         -o "$master_tex" || exit 1
 
