@@ -284,8 +284,38 @@ else                            # Ensure at least one template is set
 fi
 
 # Run pandoc
+echo Converting files to latex
+master_tex="$tmpdir/$template.master.tex"
 eval pandoc -t latex --template="$template" $PANDOC_OPTIONS $filenames \
-        -o "$tmpdir/$template.master.tex" || exit 1
+        -o "$master_tex" || exit 1
+
+# Set up latexmk-specific tmpdir
+tmpdir_mk="$tmpdir/$template.latexmk"
+if test "$clean" && test -d "$tmpdir_mk"; then
+    echo Removing auxiliary files
+    rm -rf "$tmpdir_mk"
+fi
+test ! -d "$tmpdir_mk" && mkdir "$tmpdir_mk"
+# Run latexmk
+echo Running latexmk
+if test "$debug"; then
+    latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex"
+else
+    latexmk_log="$tmpdir/$template.latexmk.log"
+    latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>"$latexmk_log"
+fi
+# Exit on Error
+if ! test -f "$tmpdir_mk/$template.master.pdf"; then
+    echo Latexmk failed to generate output >&2
+    exit 1
+fi
+
+# Copy output to destination (and maybe preview)
+test "$output" || output="$codename.pdf"
+echo Exporting output: $output
+test "$origin" && cd "$origin"
+cp -f "$tmpdir_mk/$template.master.pdf" "$output"
+test "$preview" && nohup exo-open "$output" >/dev/null 2>/dev/null
 
 # Remaining:
 #   - set up tmpdir
