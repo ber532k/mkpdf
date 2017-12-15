@@ -100,6 +100,11 @@ check_filenames() {
     # Output:   None, but files will be appended to $filenames if they exist
     while test $# -gt 0; do
         if test -f "$1"; then
+            if test "$(echo $1 | grep '[[:space:]]')"; then
+                echo Filenames containing whitespace are currently not >&2
+                echo supported. Please rename \'$1\'. >&2
+                exit 1
+            fi
             filenames="$filenames '$1'"
             shift
         else
