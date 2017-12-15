@@ -21,7 +21,7 @@
 ####################################
 
 tmpdir=/tmp/mkpdf
-pandoc_options='--file-scope --biblatex'
+pandoc_options='--file-scope --biblatex --wrap=preserve'
 if test "$(which pandoc-crossref 2>/dev/null)"; then
     pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
 fi

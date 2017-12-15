@@ -1,6 +1,0 @@
-#!/bin/bash
-
-sed 's/,{"t":"HorizontalRule"}//g' |
-sed 's/,{"t":"Para","c":\[{"t":"Str","c":"."},{"t":"Space"},{"t":"Str","c":"."},{"t":"Space"},{"t":"Str","c":"."}\]}//g' |
-
-cat
