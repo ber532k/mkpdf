@@ -22,6 +22,13 @@
 
 tmpdir=/tmp/mkpdf
 pandoc_options='--file-scope'
+if test "$(which pandoc-crossref 2>/dev/null)"; then
+    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=true"
+fi
+
+postprocessing() {
+    test "$(which furbishtex 2>/dev/null)" && furbishtex "$1"
+}
 
 # Source user-specific configuration
 test -f "$HOME/.config/mkpdfrc" && . "$HOME/.config/mkpdfrc"
@@ -296,6 +303,12 @@ test -d "$tmpdir/$template" || mkdir -p "$tmpdir/$template"
 master_tex="$tmpdir/$template/master.tex"
 eval pandoc -t latex --template="$template" $pandoc_options $filenames \
         -o "$master_tex" || exit 1
+
+# Run postprocessing (if any)
+if test "$(type postprocessing | grep function)"; then
+    echo Postprocessing pandoc output
+    postprocessing "$master_tex"
+fi
 
 # Set up / clean latexmk-specific tmpdir
 tmpdir_mk="$tmpdir/$template/latexmk"
