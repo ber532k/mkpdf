@@ -13,20 +13,29 @@ There is a package in the AUR, so use something like `pacaur -S mkpdf`
 
 ### Debian
 
-Run `make deb` to create a package for debian. Or just download the
+Run `make deb` to create a package for debian. Or just download an
 already-built package from the releases page.
 
 ### Manual Installation
 
-Since the functionality is split up into multiple files that are sourced from
-the main script, Installing it manually is not too straight forward at the
-moment. You can run `sudo make install` to set everything up or just take a
-peek into the makefile to see how it is done currently.
+Add the following files to your PATH and make sure they are executable:
 
-I realize that this is anything but ideal and will try to reunite all the
-components into a single shell script with some future release, so that
-installing it will again be a simple matter of making the `mkpdf` executable
-available in your `PATH`.
+- mkpdf
+- furbishtex (optional postprocessor)
+    * If furbishtex is found in your PATH and executable, it will be called
+      before running latexmk. See ``furbishtex -h`` for further explanation.
+    * for furbishtex to do something you will also want to
+      move ``default.sed`` to ``/usr/share/furbishtex`` or
+      at least to ``$HOME/.furbishtex`` for a user-specific
+      installation
+
+A manpage (`mkpdf.1.gz`) can be generated from [docs.md](docs.md) uing `make
+man`. This file usually has to be moved to `/usr/share/man/man1` to make it
+globally available.
+
+Install instructions are also contained in the makefile, so you can probably
+also run `sudo make install` to set everything up.
+
 
 ## Dependencies
 
@@ -40,50 +49,32 @@ Also some basic command line utils are used, but these should be included
 in every GNU/Linux system by default. Please drop me a message, if this is
 not the case.
 
-## Usage (v0.2.1)
+## Usage (v0.3 – coming soon)
 
 ```
 Usage: mkpdf [options] <directory>
-   Or: mkpdf [options] [files]
+   Or: mkpdf [options] <files>
 
 Options:
-  -c  --clean           Remove all temporary files and exit
-  -d  --debug           Print latexmk's output
-  -f  --fresh           Remove auxiliary files before running
+  -c  --clean           Remove temporary files before running
                         latexmk
+  -d  --debug           Do not hide latexmk's output
   -o  --output          Specify a name for the output file
   -p  --preview         Open pdf once generated
   -t  --template        Specify a template to use with pandoc
-      --set             Set a config-option from command line
-  -h  --help            Print this help and exit
-      --help-toc        Print info on how to use toc-mode
-      --help-config     Print info on possible config options
-      --example-toc     Print an example of a basic toc.conf
+  -h  --help            Print this help message and exit
+
+Pandoc-Options:
+  -M  --metadata        These options will be passed on to pandoc.
+                        Please refer to pandoc's documentation for
+                        further information on what they do.
 
 Specifying templates:
-      If no template is set from the command line, mkpdf will check
-      either toc.conf or the input files if any of them specify a
-      variable like 'template: default.latex'. While this is also
-      a usual (though probably not processed) variable for pandoc,
-      mkpdf will use it to determine what template to use.
-
-
-mkpdf toc-mode:
-
-  You may include a 'toc.conf' text file in a directory
-  and run mkpdf in that directory or with the directory
-  as an argument.
-
-  toc.conf syntax:
-    - Empty lines will be ignored
-    - Comments will also be ignored:
-        * Bash-style comments starting with #
-        * Latex-style comments starting with %
-        * HTML-style comments (either single- or multi-
-          line)
-    - YAML-style headers will be passed on to pandoc
-      and thus used directly in creating the output.
-    - The remaining lines will be interpreted as paths
-      pointing to markdown files to be included in the
-      output in the same order they are specified.
+    If no template is set from the command line, mkpdf will check
+    metadata from input files for a field named 'template' and use
+    it's value as the template name. If multiple templates are
+    specified, any but the first one will be ignored.
 ```
+
+Further information can also be found in [docs.md](docs.md), which can also be used to
+generate a manpage.

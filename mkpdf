@@ -40,17 +40,15 @@ test -f "$HOME/.config/mkpdfrc" && . "$HOME/.config/mkpdfrc"
 print_help() {
 cat <<EOF
 Usage: mkpdf [options] <directory>
-   Or: mkpdf [options] [files]
+   Or: mkpdf [options] <files>
 
 Options:
-  -t  --template        Specify a template to use with pandoc
-  -c  --clean           Remove relevant temporary files before
-                        running latexmk. If invoked as the only
-                        option: Remove all temporary files.
-  -d  --debug           Do not hide latexmk's output. If invoked
-                        as the only option: Display logfiles.
+  -c  --clean           Remove temporary files before running
+                        latexmk
+  -d  --debug           Do not hide latexmk's output
   -o  --output          Specify a name for the output file
   -p  --preview         Open pdf once generated
+  -t  --template        Specify a template to use with pandoc
   -h  --help            Print this help message and exit
 
 Pandoc-Options:
@@ -59,7 +57,7 @@ Pandoc-Options:
                         further information on what they do.
 
 Specifying templates:
-    If no template is set from the commandline, mkpdf will check
+    If no template is set from the command line, mkpdf will check
     metadata from input files for a field named 'template' and use
     it's value as the template name. If multiple templates are
     specified, any but the first one will be ignored.
@@ -172,7 +170,7 @@ parse_commandline() {
                 -- )
                     shift; break;;
                 * )
-                    echo Errors occured while parsing commandline options
+                    echo Errors occured while parsing command line options
                     echo Remaining arguments: $@
                     exit 1  ;;
             esac
