@@ -265,6 +265,21 @@ get_metadata() {
     pandoc --file-scope -t plain --template "$tmpdir/get_metadata.plain" $@
 }
 
+get_engine() {
+    # Input:    path to master.tex file as $1
+    # Output:   latexmk option specifying the correct engine
+    magic_line="$(cat "$1" | grep -i '% *! *TEX *program *=' | head -1)"
+    if test "$(echo "$magic_line" | grep -i 'xelatex')"; then
+        echo --xelatex
+    elif test "$(echo "$magic_line" | grep -i 'lualatex')"; then
+        echo --lualatex
+    elif test "$(echo "$magic_line" | grep -i 'pdflatex')"; then
+        echo --pdf
+    else        # Default engine
+        echo --xelatex
+    fi
+}
+
 ####################################
 ##	Main Part
 ####################################
@@ -327,18 +342,19 @@ fi
 # Set up / clean latexmk-specific tmpdir
 tmpdir_mk="$tmpdir/$subdir/latexmk"
 if test "$clean" && test -d "$tmpdir_mk"; then
-    echo Removing auxiliary files
+    echo Removing temporary files
     rm -rf "$tmpdir_mk"
 fi
 test ! -d "$tmpdir_mk" && mkdir "$tmpdir_mk"
 # Run latexmk
 echo Running latexmk
 test -f "$tmpdir_mk/master.pdf" && rm "$tmpdir_mk/master.pdf"
+engine="$(get_engine "$master_tex")"
 if test "$debug"; then
-    latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex"
+    latexmk $engine --outdir="$tmpdir_mk" "$master_tex"
 else
     latexmk_log="$tmpdir/$subdir/latexmk.log"
-    latexmk --xelatex --interaction=nonstopmode --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>&1
+    latexmk $engine --interaction=nonstopmode --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>&1
 fi
 # Exit on Error
 if ! test -f "$tmpdir_mk/master.pdf"; then

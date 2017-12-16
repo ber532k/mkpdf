@@ -63,6 +63,20 @@ templates or in `~/.pandoc/templates` for templates available only for specific
 users. Further information on pandoc templates can be found in pandoc's
 documentation.
 
+## LaTeX Engine
+
+Mkpdf uses `xelatex` as the default engine when invoking latexmk. It is
+possible, however, to specify a custom engine via a so-called magic line in a
+way known from LaTeX IDEs such as TeXworks or TeXstudio. A magic line is a
+LaTeX comment (prefixed with `%`), that must be included in the template itself
+and is often found in one of the first lines. Mkpdf currently allows you to
+specify either one of `xelatex`, `lualatex` or `pdflatex` as the LaTeX engine
+to use. To use `lualatex` with a specific template, for example, you would have
+to include the following line somewhere in that template:
+
+```
+%!TEX program=lualatex
+```
 
 # Directory Mode
 
