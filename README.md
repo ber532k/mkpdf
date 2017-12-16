@@ -1,8 +1,9 @@
 # mkpdf
 
-This is a simple command line wrapper around pandoc and latexmk
-written in bash. It will generate pdf output from one or more files
-written in pandoc's markdown using a specified template.
+This is a simple command line wrapper around pandoc and latexmk written in
+shell script and tested with both bash and dash, so it should hopefully be
+POSIX-compliant. It will generate pdf output from one or more files written in
+pandoc's markdown using a specified template.
 
 
 ## Installing
