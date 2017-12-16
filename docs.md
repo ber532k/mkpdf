@@ -4,8 +4,10 @@ mkpdf - A simple wrapper around pandoc and latexmk
 
 # Synopsis
 
-`mkpdf [options] <directory>`\
-`mkpdf [options] <files>`
+```
+mkpdf [options] <directory>
+mkpdf [options] <files>
+```
 
 # Description
 
@@ -67,11 +69,11 @@ documentation.
 Mkpdf allows you to specify an entire directory as input. In fact, if mkpdf is
 invoked without any file or directory name as input, it will default to using
 the current working directory. This directory must contain a file named
-toc.conf, which is used to point to other files and may optionally contain
-metadata blocks. Filenames are specified relative to the directory toc.conf is
-located in and must not contain whitespace. Comments can be included by
-prefixing lines or parts of lines with #. An example toc.conf could look like
-this:
+`toc.conf`, which is used to point to other files and may optionally contain
+metadata blocks. Filenames are specified relative to the directory `toc.conf`
+is located in and must not contain whitespace. Comments can be included by
+prefixing lines or parts of lines with `#`. An example `toc.conf` could look
+like this:
 
 ```
 ---
@@ -99,10 +101,10 @@ bibliography:
 
 # Configuration
 
-The mkpdf configuration file is located at ~/.config/mkpdfrc and will be
+The mkpdf configuration file is located at `~/.config/mkpdfrc` and will be
 sourced at each invokation of the script. This even allows to use some basic
 shell scripting to e.\ g.\ enclose configuration options in conditionals. It
-also allows for comments by prefixing lines with #. Options are specified or
+also allows for comments by prefixing lines with `#`. Options are specified or
 unset as simple shell variables:
 
 ```
