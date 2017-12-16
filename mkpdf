@@ -333,11 +333,12 @@ fi
 test ! -d "$tmpdir_mk" && mkdir "$tmpdir_mk"
 # Run latexmk
 echo Running latexmk
+test -f "$tmpdir_mk/master.pdf" && rm "$tmpdir_mk/master.pdf"
 if test "$debug"; then
     latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex"
 else
     latexmk_log="$tmpdir/$subdir/latexmk.log"
-    latexmk --xelatex --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>&1
+    latexmk --xelatex -f --outdir="$tmpdir_mk" "$master_tex" >"$latexmk_log" 2>&1
 fi
 # Exit on Error
 if ! test -f "$tmpdir_mk/master.pdf"; then
