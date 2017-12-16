@@ -262,7 +262,7 @@ get_metadata() {
     # $if(var)$'$for(var)$$var$$sep$' '$endfor$'$endif$
     echo "\$if($1)\$"\'"\$for($1)\$\$$1\$\$sep\$"\'" "\'"\$endfor\$"\'"\$endif\$" > "$tmpdir/get_metadata.plain"
     shift
-    pandoc --file-scope -t plain --template "$tmpdir/get_metadata.plain" $@
+    pandoc --file-scope -t plain --template "$tmpdir/get_metadata.plain" $@ 2>/dev/null
 }
 
 get_engine() {
