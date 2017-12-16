@@ -25,7 +25,7 @@ specified as the only option, all temporary files will be removed.
 option, an interactive loop will be used to search through all relevant
 logfiles and display those that didn't, or didn't yet, exit ok.
 
--o, \--output
+-o FILENAME, \--output=FILENAME
 : Specify a name for the output file. If this option is specified multiple
 times, all but the first one will be ignored.
 
@@ -33,19 +33,19 @@ times, all but the first one will be ignored.
 : Open the output file after it has been generated, using the system's default
 pdf viewer.
 
--t, \--template
+-t FILENAME, \--template=FILENAME
 : Specify a template to use with pandoc. If this option is specified multiple
 times, all but the first one will be ignored.
 
 -h, \--help
-: Print short help message and exit.
+: Print a short help message and exit.
 
 ## Pandoc-Options
 
 The following options will be passed on to pandoc. Please refer to pandoc's
 documentation for further information.
 
--M, \--metadata
+-M KEY[=VAL], \--metadata=KEY[:VAL]
 : Specify metadata fields directly from the command line, such as `-M lang=en`
 or `--metadata="lang:en"`.
 
@@ -152,7 +152,10 @@ postprocessing() {
 }
 ```
 
-To completely disable postprocessing, simply unset the default definition:
+To use custom postprocessing, you can simply define a function called
+postprocessing in your configuration file. This custom function will then be
+invoked instead of the default one. To completely disable postprocessing,
+simply unset the default definition:
 
 ```
 unset postprocessing
