@@ -30,9 +30,9 @@ Add the following files to your PATH and make sure they are executable:
       at least to ``$HOME/.furbishtex`` for a user-specific
       installation
 
-A manpage (`mkpdf.1.gz`) can be generated from [docs.md](docs.md) uing `make
-man`. This file usually has to be moved to `/usr/share/man/man1` to make it
-globally available.
+A manpage (`mkpdf.1.gz`) can be generated from [docs.md](docs.md) using
+`make man`. This file usually has to be moved to `/usr/share/man/man1` to make
+it globally available.
 
 Install instructions are also contained in the makefile, so you can probably
 also run `sudo make install` to set everything up.
@@ -77,5 +77,5 @@ Specifying templates:
     specified, any but the first one will be ignored.
 ```
 
-Further information can also be found in [docs.md](docs.md), which can also be used to
-generate a manpage.
+Further information can be found in [docs.md](docs.md), which can also be used
+to generate a manpage.
