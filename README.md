@@ -50,6 +50,18 @@ Also some basic command line utils are used, but these should be included
 in every GNU/Linux system by default. Please drop me a message, if this is
 not the case.
 
+### Automated Language Detection
+
+Mkpdf can make use of the python [langdetect
+library](https://pypi.python.org/pypi/langdetect) to automatically detect the
+language used in a document – which is done in case `lang` is neither specified
+via metadata nor via the command line. This information is then used for
+hyphenation, citations etc. To use this feature, make sure python 3.x is
+installed and `python3` is executable and in your `PATH`. You will also have to
+install `langdetect` – probably via pip or pip3 (running `pip install --user
+langdetect`). If either python3 or langdetect are missing, mkpdf will simply
+skip language detection.
+
 ## Usage (v0.3 – coming soon)
 
 ```

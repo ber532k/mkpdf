@@ -305,6 +305,25 @@ if test $mode = dir; then   # Extract Metadata from toc.conf
     filenames="'$tmpdir/head.md' $filenames"
 fi
 
+# Guess language if not set in metadata
+if python3 -c "import langdetect" 2>/dev/null; then
+    if ! test "$(echo $pandoc_options | grep 'lang')" && \
+       ! test "$(get_metadata lang $filenames)"; then
+        printf "Detecting language ..."
+lang="$(eval pandoc --file-scope -t plain $filenames 2>/dev/null | python3 -c '
+from sys import stdin
+from langdetect import detect
+print(detect(stdin.read()))
+' 2>/dev/null)"
+        if test "$lang"; then
+            printf "\b\b\b\b: $lang\n"
+            pandoc_options="$pandoc_options -M lang=$lang"
+        else
+            printf " failed\n"
+        fi
+    fi
+fi
+
 echo Converting files to latex
 # Get template if missing
 if ! test "$template"; then     # Check metadata
@@ -347,7 +366,7 @@ if test "$clean" && test -d "$tmpdir_mk"; then
 fi
 test ! -d "$tmpdir_mk" && mkdir "$tmpdir_mk"
 # Run latexmk
-echo Running latexmk
+echo Running latexmk ...
 test -f "$tmpdir_mk/master.pdf" && rm "$tmpdir_mk/master.pdf"
 engine="$(get_engine "$master_tex")"
 if test "$debug"; then
