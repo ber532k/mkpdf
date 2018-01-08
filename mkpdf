@@ -308,7 +308,7 @@ fi
 # Guess language if not set in metadata
 if python3 -c "import langdetect" 2>/dev/null; then
     if ! test "$(echo $pandoc_options | grep 'lang')" && \
-       ! test "$(get_metadata lang $filenames)"; then
+       ! test "$(eval get_metadata lang $filenames)"; then
         printf "Detecting language ..."
 lang="$(eval pandoc --file-scope -t plain $filenames 2>/dev/null | python3 -c '
 from sys import stdin
