@@ -17,6 +17,12 @@ There is a package in the AUR, so use something like `pacaur -S mkpdf`
 Run `make deb` to create a package for debian. Or just download an
 already-built package from the releases page.
 
+### Ubuntu or Linux Mint
+
+Preliminary testing suggests the Debian package will also work on these two
+Debian-based distributions. Please feel free to contact me if you encounter
+any problems.
+
 ### Manual Installation
 
 Add the following files to your PATH and make sure they are executable:
