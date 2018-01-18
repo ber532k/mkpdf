@@ -62,7 +62,7 @@ install `langdetect` – probably via pip or pip3 (running `pip install --user
 langdetect`). If either python3 or langdetect are missing, mkpdf will simply
 skip language detection.
 
-## Usage (v0.3 – coming soon)
+## Usage (v0.3)
 
 ```
 Usage: mkpdf [options] <directory>
