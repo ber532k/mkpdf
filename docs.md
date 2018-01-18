@@ -12,8 +12,8 @@ mkpdf [options] <files>
 # Description
 
 Mkpdf is a wrapper around pandoc and latexmk that aims at simplifying the
-generation of pdfs from plain text files written in a markup language pandoc
-understands, such as pandoc's own variant of markdown.
+generation of pdfs from plain text files written in a markup language which
+pandoc understands, such as pandoc's own variant of markdown.
 
 
 # Options
@@ -25,7 +25,7 @@ specified as the only option, all temporary files will be removed.
 -d, \--debug
 : Print latexmk's output directly to stdout. If `-d` is specified as the only
 option, an interactive loop will be used to search through all relevant
-logfiles and display those that didn't, or didn't yet, exit ok.
+logfiles and will display those that didn't, or didn't yet, exit ok.
 
 -o FILENAME, \--output=FILENAME
 : Specify a name for the output file. If this option is specified multiple
@@ -57,7 +57,7 @@ or `--metadata="lang:en"`.
 Pandoc uses templates, which act as a sort of frame in which the converted
 markup content (in this case, the latex code) is embedded. Templates can either
 be specified using relative or absolute paths or using only the name, if the
-template is located at one of the places, where pandoc looks for templates by
+template is located at one of the places where pandoc looks for templates by
 default. I.\ e.\ in `/usr/share/pandoc/data/templates` for globally available
 templates or in `~/.pandoc/templates` for templates available only for specific
 users. Further information on pandoc templates can be found in pandoc's
@@ -68,7 +68,7 @@ documentation.
 Mkpdf uses `xelatex` as the default engine when invoking latexmk. It is
 possible, however, to specify a custom engine via a so-called magic line in a
 way known from LaTeX IDEs such as TeXworks or TeXstudio. A magic line is a
-LaTeX comment (prefixed with `%`), that must be included in the template itself
+LaTeX comment (prefixed with `%`) that must be included in the template itself
 and is often found in one of the first lines. Mkpdf currently allows you to
 specify either one of `xelatex`, `lualatex` or `pdflatex` as the LaTeX engine
 to use. To use `lualatex` with a specific template, for example, you would have
@@ -84,10 +84,10 @@ Mkpdf allows you to specify an entire directory as input. In fact, if mkpdf is
 invoked without any file or directory name as input, it will default to using
 the current working directory. This directory must contain a file named
 `toc.conf`, which is used to point to other files and may optionally contain
-metadata blocks. Filenames are specified relative to the directory `toc.conf`
-is located in and must not contain whitespace. Comments can be included by
-prefixing lines or parts of lines with `#`. An example `toc.conf` could look
-like this:
+metadata blocks. Filenames are specified relative to the directory where
+`toc.conf` is located in and must not contain whitespace. Comments can be
+included by prefixing lines or parts of lines with `#`. An example `toc.conf`
+could look like this:
 
 ```
 ---
@@ -156,9 +156,9 @@ pandoc_options="$pandoc_options --new-option"
 ```
 
 tmpdir
-: The root of the directory where mkpdf stores the temporary files it creates.
-Note that this directory is completely removed with `mkpdf -c`, so make sure it
-is not used for any other purpose. Default value: `/tmp/mkpdf`.
+: Specify the root of the directory where mkpdf stores temporary files. Note
+that this directory is completely removed with `mkpdf -c`, so make sure it is
+not used for any other purpose. Default value: `/tmp/mkpdf`.
 
 ## Postprocessing
 
