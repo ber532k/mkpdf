@@ -120,6 +120,39 @@ check_filenames() {
     done
 }
 
+is_bibtex() {
+    # Input:    single filename as $1
+    # Output:   returns 0 if file is bibtex, 1 otherwise
+    if test "$(echo $1 | tail -c5)" = ".bib"; then
+        return 0
+    elif test "$(echo $1 | tail -c8)" = ".bibtex"; then
+        return 0
+    elif test "$(echo $1 | tail -c10)" = ".biblatex"; then
+        return 0
+    elif test "$(file $1 | grep "BibTeX")"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_bibtex() {
+    # Input:    list of filenames as $1, $2, ...
+    # Output:   None, but exit 1 if any of the files isn't bibtex
+    #           filenames will be appended to pandoc-options as bibliography
+    while test $# -gt 0; do
+        if is_bibtex "$1"; then
+            pandoc_options="$pandoc_options -M bibliography='$1'"
+        else
+            echo Not a BibTeX file: $1 >&2
+            echo Mixing of BibTeX and non-BibTeX files as >&2
+            echo input is not supported. >&2
+            exit 1
+        fi
+        shift
+    done
+}
+
 parse_commandline() {
     get_codename() {
         codename="$(echo $1 | rev | cut -d '/' -f 1 | rev | cut -d '.' -f 1 |
@@ -194,9 +227,14 @@ parse_commandline() {
             fi
             get_codename "$(realpath "$tocdir")"
         elif test -f "$1"; then
-            mode=files
             check_filenames "$@"
             eval get_codename $filenames
+            if is_bibtex "$1"; then
+                mode=bib
+                check_bibtex "$@"
+            else
+                mode=files
+            fi
         else
             echo No such file or directory: $1 >&2
             exit 1
@@ -303,6 +341,15 @@ mkdir -p "$tmpdir"
 if test $mode = dir; then   # Extract Metadata from toc.conf
     read_toc 'meta' 'toc.conf' > "$tmpdir/head.md"
     filenames="'$tmpdir/head.md' $filenames"
+elif test $mode = bib; then # Write a dummy file and set as filenames
+    eval cat $filenames | head -3 | grep '^%' > "$tmpdir/dummy.md"
+    printf '\n\\nocite{*}\n' >> "$tmpdir/dummy.md"
+    pandoc_options="$pandoc_options -M biblio-title=' '" # Use nbsp as biblio-title
+    if ! test "$(get_metadata title "$tmpdir/dummy.md")"; then
+        pandoc_options="$pandoc_options -M title='$(eval ls -m $filenames)'"
+    fi
+    filenames="'$tmpdir/dummy.md'"
+    test "$default_bib_template" && default_template="$default_bib_template"
 fi
 
 # Guess language if not set in metadata
@@ -310,7 +357,12 @@ if python3 -c "import langdetect" 2>/dev/null; then
     if ! test "$(echo $pandoc_options | grep 'lang')" && \
        ! test "$(eval get_metadata lang $filenames)"; then
         printf "Detecting language ..."
-lang="$(eval pandoc --file-scope -t plain $filenames 2>/dev/null | python3 -c '
+        if test "$mode" = bib; then
+            detect_from=title
+        else
+            detect_from=body
+        fi
+lang="$(eval get_metadata $detect_from $filenames | python3 -c '
 from sys import stdin
 from langdetect import detect
 print(detect(stdin.read()))

@@ -112,6 +112,29 @@ bibliography:
 ---
 ```
 
+# Bibliography Mode
+
+If input files specified from the command line are BibTeX or BibLaTeX files,
+mkpdf will generate a pdf containing only a bibliography. In this case pandoc's
+`biblio-title` variable will be set to a non-breaking-space, so that there
+should be no bibliography-specific heading in the output pdf. If no title is
+specified for the document, the input filenames will be used instead. Custom
+values for `title`, `author` or `date` may be specified from the command line
+using the `-M` / `--metadata` switch. Alternativeley this information can be
+specified in the BibTeX / BibLaTeX file itself by including a pandoc title
+block in the first three lines of the bibliography file. Such a titleblock
+consists of three lines beginning with `%` followed by the title, author and
+date respectiveley:
+
+```
+% My Bibliography Title
+% Max Mustermann
+% 20. January 2018
+
+@article{my-article,
+    title={Some Article I read},
+```
+
 
 # Configuration
 
@@ -145,6 +168,10 @@ preview
 default_template
 : Use the following template as default if none is specified from command line
 or via metadata fields.
+
+default_bib_template
+: Use the following template as default for BibTeX files if no template is
+specified from the command line.
 
 pandoc_options
 : Use the following command line options when invoking pandoc. If you want to
