@@ -91,7 +91,7 @@ could look like this:
 
 ```
 ---
-author: Max Mustermann
+author: John Doe
 title: Some example document
 template: default.latex
 ...
@@ -128,7 +128,7 @@ date respectiveley:
 
 ```
 % My Bibliography Title
-% Max Mustermann
+% Jane Doe
 % 20. January 2018
 
 @article{my-article,
@@ -180,6 +180,17 @@ follows:
 
 ```
 pandoc_options="$pandoc_options --new-option"
+```
+
+pandoc_metavars
+: In contrast to pandoc_options, this option it is meant for document
+metadata rather than for technical switches or formating information. It
+could e.\ g.\ be used to have all documents automatically recieve your
+name for author as follows below. Note however, that pandoc's `-M`
+option will override any metadata found in titleblocks.
+
+```
+pandoc_metavars="$pandoc_metavars -M author='Jane Doe'"
 ```
 
 tmpdir

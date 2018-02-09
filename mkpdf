@@ -21,7 +21,7 @@
 ####################################
 
 tmpdir=/tmp/mkpdf
-pandoc_options='--file-scope --biblatex --wrap=preserve'
+pandoc_options="$pandoc_options --file-scope --biblatex --wrap=preserve"
 #if test "$(which pandoc-crossref 2>/dev/null)"; then
 #    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
 #fi
@@ -197,7 +197,7 @@ parse_commandline() {
                     shift 2 ;;
                 # Pandoc-Options
                 -M | --metadata )
-                    pandoc_options="$pandoc_options $1 '$2'"
+                    pandoc_metavars="$pandoc_metavars $1 '$2'"
                     shift 2 ;;
                 # Concluding remarks
                 -- )
@@ -300,7 +300,7 @@ get_metadata() {
     # $if(var)$'$for(var)$$var$$sep$' '$endfor$'$endif$
     echo "\$if($1)\$"\'"\$for($1)\$\$$1\$\$sep\$"\'" "\'"\$endfor\$"\'"\$endif\$" > "$tmpdir/get_metadata.plain"
     shift
-    pandoc --file-scope -t plain --template "$tmpdir/get_metadata.plain" $@ 2>/dev/null
+    eval pandoc $pandoc_metavars --file-scope -t plain --template "$tmpdir/get_metadata.plain" $@ 2>/dev/null
 }
 
 get_engine() {
@@ -354,8 +354,7 @@ fi
 
 # Guess language if not set in metadata
 if python3 -c "import langdetect" 2>/dev/null; then
-    if ! test "$(echo $pandoc_options | grep 'lang')" && \
-       ! test "$(eval get_metadata lang $filenames)"; then
+    if ! test "$(eval get_metadata lang $filenames)"; then
         printf "Detecting language ..."
         if test "$mode" = bib; then
             detect_from=title
@@ -369,7 +368,7 @@ print(detect(stdin.read()))
 ' 2>/dev/null)"
         if test "$lang"; then
             printf "\b\b\b\b: $lang\n"
-            pandoc_options="$pandoc_options -M lang=$lang"
+            pandoc_metavars="$pandoc_metavars -M lang=$lang"
         else
             printf " failed\n"
         fi
@@ -400,8 +399,8 @@ if test "$(get_extension $template)" = "beamer"; then
 else
     pandoc_options="-t latex $pandoc_options"
 fi
-echo "--template=\"$template\" $pandoc_options" > $tmpdir/$subdir/pandoc.options
-eval pandoc --template="$template" $pandoc_options $filenames \
+echo "--template=\"$template\" $pandoc_metavars $pandoc_options" > $tmpdir/$subdir/pandoc.options
+eval pandoc --template="$template" $pandoc_metavars $pandoc_options $filenames \
         -o "$master_tex" || exit 1
 
 # Run postprocessing (if any)
