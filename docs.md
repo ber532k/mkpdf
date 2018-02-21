@@ -194,9 +194,11 @@ pandoc_metavars="$pandoc_metavars -M author='Jane Doe'"
 ```
 
 tmpdir
-: Specify the root of the directory where mkpdf stores temporary files. Note
-that this directory is completely removed with `mkpdf -c`, so make sure it is
-not used for any other purpose. Default value: `/tmp/mkpdf`.
+: Specify the root of the directory where mkpdf stores temporary
+files. Note that this directory is completely removed with `mkpdf
+-c`, so make sure it is not used for any other purpose. Default value:
+`/tmp/mkpdf-$UID`, where `$UID` is a unique id assigned by the systemto
+the user running mkpdf.
 
 ## Postprocessing
 

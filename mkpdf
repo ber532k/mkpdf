@@ -20,7 +20,7 @@
 ##  (Default) Configuration
 ####################################
 
-tmpdir=/tmp/mkpdf
+tmpdir="/tmp/mkpdf-$(id -u)"
 pandoc_options="$pandoc_options --file-scope --biblatex --wrap=preserve"
 #if test "$(which pandoc-crossref 2>/dev/null)"; then
 #    pandoc_options="$pandoc_options --filter=pandoc-crossref -M autoSectionLabels=True -M cref=True"
